@@ -102,6 +102,10 @@ RenderData *createRenderData(const DrawContext *ctx) {
   renderData->uniformBlockIdx = glGetUniformBlockIndex(
     renderData->shader, "SceneData");
 
+  static const float GRID_SIZE = 8.0f;
+  renderData->uniformData.wGridScale = GRID_SIZE;
+  renderData->uniformData.wMapStart = vec2(-GRID_SIZE*4.0f, -GRID_SIZE*4.0f);
+  renderData->uniformData.wMapEnd = vec2(GRID_SIZE*4.0f,GRID_SIZE*4.0f);
   renderData->uniformData.wCirclePosition = vec2(0.0f, 0.0f);
   renderData->uniformData.wCircleRadius = 0.5f;
   glGenBuffers(1, &renderData->uniformBuffer);
@@ -127,10 +131,11 @@ void render(
   glClear(GL_COLOR_BUFFER_BIT);
 
   static float wWidth = 2.0f;
-  wWidth += 0.01f;
+  wWidth += 0.1f;
 
   renderData->uniformData.invOrtho = invOrtho(
-    vec2(-1.0f, -1.0f), wWidth, (float)ctx->width/(float)ctx->height);
+    vec2(-wWidth/2.0f, -wWidth/2.0f), wWidth,
+    (float)ctx->width/(float)ctx->height);
   updateUniformBuffer(renderData);
 
   glUseProgram(renderData->shader);

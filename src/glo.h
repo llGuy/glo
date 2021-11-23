@@ -5,6 +5,8 @@
 
 #define MAX_PLAYER_COUNT 20
 
+/* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
+
 typedef struct Player {
   Vec2 position;
   float orientation;

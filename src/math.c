@@ -34,8 +34,8 @@ Mat4 invOrtho(Vec2 wBase, float wWidth, float aspect) {
   projection.cols[0].v[0] = wWidth/2.0f;
   projection.cols[1].v[1] = wHeight/2.0f;
   /* Translate appropriately */
-  projection.cols[3].v[0] = -1.0f + (wWidth / 2.0f);
-  projection.cols[3].v[1] = -1.0f + (wHeight / 2.0f);
+  projection.cols[3].v[0] = wBase.x + (wWidth / 2.0f);
+  projection.cols[3].v[1] = wBase.y + (wHeight / 2.0f);
 
   return projection;
 }
