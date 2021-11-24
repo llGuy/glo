@@ -19,11 +19,10 @@ typedef struct UniformData {
   float wGridScale;
 
   /* Will see some padding due to layout std140 */
-  char pad[4];
+  char pad[12];
 
-  /* Some test object. */
-  Vec2 wCirclePosition;
-  float wCircleRadius;
+  /* x,y coordinates; z=orient; w=scale */
+  Vec4 wPlayerProp;
 
 } UniformData;
 

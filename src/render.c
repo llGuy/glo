@@ -106,8 +106,6 @@ RenderData *createRenderData(const DrawContext *ctx) {
   renderData->uniformData.wGridScale = GRID_SIZE;
   renderData->uniformData.wMapStart = vec2(-GRID_SIZE*4.0f, -GRID_SIZE*4.0f);
   renderData->uniformData.wMapEnd = vec2(GRID_SIZE*4.0f,GRID_SIZE*4.0f);
-  renderData->uniformData.wCirclePosition = vec2(0.0f, 0.0f);
-  renderData->uniformData.wCircleRadius = 0.5f;
   glGenBuffers(1, &renderData->uniformBuffer);
   glBindBuffer(GL_UNIFORM_BUFFER, renderData->uniformBuffer);
   glBufferData(
@@ -130,13 +128,26 @@ void render(
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  static float wWidth = 2.0f;
-  wWidth += 0.1f;
+  static float wWidth = 9.0f*3.0f;
 
-  renderData->uniformData.invOrtho = invOrtho(
-    vec2(-wWidth/2.0f, -wWidth/2.0f), wWidth,
-    (float)ctx->width/(float)ctx->height);
-  updateUniformBuffer(renderData);
+  { /* Update the uniform data with game data */
+    const Player *me = &game->players[game->controlled];
+
+    float aspect = (float)ctx->width / (float)ctx->height;
+    float wHeight = wWidth / aspect;
+
+    Vec2 mid = vec2(wWidth/2.0f, wHeight/2.0f);
+
+    renderData->uniformData.invOrtho = invOrtho(
+      vec2(me->position.x-mid.x, me->position.y-mid.y), wWidth,
+      (float)ctx->width/(float)ctx->height);
+
+    renderData->uniformData.wPlayerProp.x = me->position.x;
+    renderData->uniformData.wPlayerProp.y = me->position.y;
+    renderData->uniformData.wPlayerProp.z = me->orientation;
+    renderData->uniformData.wPlayerProp.w = 0.5f;
+    updateUniformBuffer(renderData);
+  }
 
   glUseProgram(renderData->shader);
   glBindBuffer(GL_UNIFORM_BUFFER, renderData->uniformBuffer);

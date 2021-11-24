@@ -1,4 +1,30 @@
+#include <math.h>
+
 #include "math.h"
+
+Vec2 vec2_orient(float orientation) {
+  Vec2 v = {
+    .x = cosf(orientation), .y = sinf(orientation)
+  };
+
+  return v;
+}
+
+Vec2 vec2_add(Vec2 a, Vec2 b) {
+  Vec2 v = {
+    .x = a.x + b.x, .y = a.y + b.y
+  };
+
+  return v;
+}
+
+Vec2 vec2_mul(Vec2 a, float scale) {
+  Vec2 v = {
+    .x = a.x * scale, .y = a.y * scale
+  };
+
+  return v;
+}
 
 Vec4 vec4(float x, float y, float z, float w) {
   Vec4 v = {

@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include "glo.h"
 #include "math.h"
 
 struct GLFWwindow;
@@ -12,6 +13,10 @@ typedef struct DrawContext {
   int width, height;
   struct GLFWwindow *window;
 
+  /* Frame rate and timing */
+  double currentTime;
+  float dt;
+
   /* For rendering */
   Mat4 ortho;
 } DrawContext;
@@ -19,5 +24,6 @@ typedef struct DrawContext {
 DrawContext *createDrawContext();
 bool isContextClosed(DrawContext *ctx);
 void tickDisplay(DrawContext *ctx);
+GameCommands translateIO(DrawContext *ctx);
 
 #endif

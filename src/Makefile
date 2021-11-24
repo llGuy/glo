@@ -1,5 +1,5 @@
 all:
-	gcc -g math.c glo.c render.c io.c -lglfw -lGL -lGLEW
+	gcc -o glo -g math.c glo.c render.c io.c -lglfw -lGL -lGLEW -lm
 
 run:
-	./a.out
+	./glo

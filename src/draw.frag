@@ -9,9 +9,20 @@ layout (std140) uniform SceneData {
   vec2 wMapStart;
   vec2 wMapEnd;
   float wGridScale;
-  vec2 wCirclePosition;
-  float wCircleRadius;
+
+  // x,y coordinates; z=orient; w=scale
+  vec4 wPlayerProp;
 } uSceneData;
+
+///////////////////////////////////////////////////////////////////////////////
+//                                 Math stuff                                //
+///////////////////////////////////////////////////////////////////////////////
+mat2 rotate(float angle) {
+  mat2 r = mat2(
+    cos(angle), sin(angle),
+    -sin(angle), cos(angle));
+  return r;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //           A bunch of SDF functions used in the rendering process          //
@@ -26,6 +37,26 @@ float sdSegment(vec2 p, vec2 a, vec2 b) {
   return length( pa - ba*h );
 }
 
+float sdTriangleIsosceles(vec2 p, vec2 q) {
+  p.x = abs(p.x);
+  vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
+  vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
+  float s = -sign( q.y );
+  vec2 d = min( vec2( dot(a,a), s*(p.x*q.y-p.y*q.x) ),
+                vec2( dot(b,b), s*(p.y-q.y)  ));
+  return -sqrt(d.x)*sign(d.y);
+}
+
+float sdUnevenCapsule(vec2 p, float r1, float r2, float h) {
+  p.x = abs(p.x);
+  float b = (r1-r2)/h;
+  float a = sqrt(1.0-b*b);
+  float k = dot(p,vec2(-b,a));
+  if( k < 0.0 ) return length(p) - r1;
+  if( k > a*h ) return length(p-vec2(0.0,h)) - r2;
+  return dot(p, vec2(a,b) ) - r1;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                 Rendering                                 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,9 +64,10 @@ float mapObjects(in vec2 wCoord) {
   float d = 1e10;
 
   // Testing circle
-  d = min(d, sdCircle(
-            wCoord - uSceneData.wCirclePosition,
-            uSceneData.wCircleRadius));
+  d = min(d, uSceneData.wPlayerProp.w * sdUnevenCapsule(
+            (rotate(uSceneData.wPlayerProp.z) *
+              (wCoord - uSceneData.wPlayerProp.xy)) / uSceneData.wPlayerProp.w,
+            0.8f, 0.3f, 1.0f));
 
   return d;
 }
