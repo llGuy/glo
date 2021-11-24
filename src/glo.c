@@ -13,6 +13,8 @@ GloState *createGloState() {
   GloState *state = (GloState *)malloc(sizeof(GloState));
   memset(state, 0, sizeof(GloState));
 
+  state->freeBulletTrails = createBitvec(MAX_BULLET_TRAILS);
+
   return state;
 }
 
@@ -27,8 +29,17 @@ Player createPlayer(Vec2 position) {
   return player;
 }
 
+/* Needs to add to the trajectories array */
+int createBulletTrail(GloState *game, Vec2 start, Vec2 direction) {
+  if (game->freeBulletTrailCount) {
+    
+  }
+
+  return 0;
+}
+
 /* Predict the state of the player */
-void predictState(GloState *gameState, GameCommands commands) {
+static void predictState(GloState *gameState, GameCommands commands) {
   float dt = commands.dt;
   Player *me = &gameState->players[gameState->controlled];
 
@@ -48,8 +59,12 @@ void predictState(GloState *gameState, GameCommands commands) {
   if (commands.actions.moveRight) {
     me->position.x += dt*me->speed;
   }
+  if (commands.actions.shoot)  {
+    printf("Shoot\n");
+  }
 }
 
+/* Entry point */
 int main(int argc, char *argv[]) {
   DrawContext *drawContext = createDrawContext();
   RenderData *renderData = createRenderData(drawContext);

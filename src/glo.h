@@ -4,9 +4,11 @@
 #include <stdint.h>
 
 #include "math.h"
+#include "bitv.h"
 
 #define MAX_PLAYER_COUNT 20
-#define BASE_SPEED 1.0f
+#define MAX_BULLET_TRAILS 100
+#define BASE_SPEED 5.0f
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
 
@@ -15,6 +17,12 @@ typedef struct Player {
   float orientation;
   float speed;
 } Player;
+
+typedef struct BulletTrajectory {
+  Vec2 wStart;
+  Vec2 wTrail[5];
+  Vec2 wEnd;
+} BulletTrajectory;
 
 typedef struct GameCommands {
   struct {
@@ -43,9 +51,15 @@ typedef struct GloState {
   int controlled;
 
   /* Need to keep track of all the bullet trails and stuff */
+  BitVector freeBulletTrails;
+  int freeBulletTrailCount;
+  BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
+  int bulletTrailCount;
 } GloState;
 
 GloState *createGloState();
 Player createPlayer(Vec2 position);
+int createBulletTrail(GloState *game, Vec2 start, Vec2 direction);
+void freeBulletTrail(GloState *game, int idx);
 
 #endif

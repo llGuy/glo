@@ -128,7 +128,7 @@ void render(
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
-  static float wWidth = 9.0f*3.0f;
+  static float wWidth = 9.0f*5.0f;
 
   { /* Update the uniform data with game data */
     const Player *me = &game->players[game->controlled];

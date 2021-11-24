@@ -75,6 +75,16 @@ GameCommands translateIO(DrawContext *ctx) {
   if (glfwGetKey(ctx->window, GLFW_KEY_D)) {
     commands.actions.moveRight = 1;
   }
+  if (glfwGetMouseButton(ctx->window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    static double shootTime = 0.0f;
+
+    double newShootTime = glfwGetTime();
+
+    if (newShootTime - shootTime > 0.3) {
+      shootTime = newShootTime;
+      commands.actions.shoot = 1;
+    }
+  }
 
   double x, y;
   glfwGetCursorPos(ctx->window, &x, &y);

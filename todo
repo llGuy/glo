@@ -1,4 +1,3 @@
-- predict state of the player
-- figure out how to move map view + implement
-- render shooting and stuff + optimize
-- implement discovery system with networking
+- finish rendering stuff
+
+- start networking stuff

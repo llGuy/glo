@@ -64,10 +64,10 @@ float mapObjects(in vec2 wCoord) {
   float d = 1e10;
 
   // Testing circle
-  d = min(d, uSceneData.wPlayerProp.w * sdUnevenCapsule(
+  d = min(d, 0.3*uSceneData.wPlayerProp.w * sdUnevenCapsule(
             (rotate(uSceneData.wPlayerProp.z) *
-              (wCoord - uSceneData.wPlayerProp.xy)) / uSceneData.wPlayerProp.w,
-            0.8f, 0.3f, 1.0f));
+              (wCoord - uSceneData.wPlayerProp.xy)) / (0.3*uSceneData.wPlayerProp.w),
+            0.9f, 0.2f, 3.2f));
 
   return d;
 }
@@ -101,17 +101,23 @@ void main() {
   vec2 wCoord = (uSceneData.invOrtho * vec4(fragCoord,0.0,1.0)).xy;
   float d = mapObjects(wCoord);
 
+  outFragColor = vec4(0.0);
+
+  outFragColor += vec4(1.0, 0.3, 0.2, 1.0) / (d*d);
+
+  /*
   if (d <= 0.0001) {
-    outFragColor = vec4(1.0);
+    outFragColor = vec4(1.0, 0.3, 0.2, 1.0);
+    outFragColor += 0.2*vec4(1.0, 0.3, 0.2, 1.0) / (d*d);
   }
-  else {
+  else*/ {
     float gridD = mapGrid(wCoord);
 
     if (gridD <= 0.0001) {
-      outFragColor = vec4(0.1, 0.1, 0.1, 1.0);
+      outFragColor += vec4(0.1, 0.1, 0.1, 1.0);
     }
     else {
-      outFragColor = vec4(0.0);
+      outFragColor += vec4(0.0);
     }
   }
 }
