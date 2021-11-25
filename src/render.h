@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "glo.h"
 #include "math.h"
 
 typedef struct DrawContext DrawContext;
@@ -19,10 +20,17 @@ typedef struct UniformData {
   float wGridScale;
 
   /* Will see some padding due to layout std140 */
-  char pad[12];
+  char pad0[12];
 
   /* x,y coordinates; z=orient; w=scale */
   Vec4 wPlayerProp;
+
+  /* Bullet trails */
+  int bulletTrailCount;
+
+  char pad1[12];
+
+  BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
 
 } UniformData;
 
@@ -37,7 +45,7 @@ typedef struct RenderData {
 RenderData *createRenderData(const struct DrawContext *ctx);
 
 void render(
-  const DrawContext *ctx, const GloState *game,
+  const GloState *game, DrawContext *ctx,
   RenderData *renderData);
 
 #endif

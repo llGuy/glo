@@ -51,6 +51,17 @@ Mat4 identity() {
   return mat;
 }
 
+Vec4 mat4_mul_vec4(const Mat4 *m, const Vec4 *v) {
+  Vec4 res = {
+    .x = m->cols[0].v[0]*v->x+m->cols[1].v[0]*v->y+m->cols[2].v[0]*v->z+m->cols[3].v[0]*v->w,
+    .y = m->cols[0].v[1]*v->x+m->cols[1].v[1]*v->y+m->cols[2].v[1]*v->z+m->cols[3].v[1]*v->w,
+    .z = m->cols[0].v[2]*v->x+m->cols[1].v[2]*v->y+m->cols[2].v[2]*v->z+m->cols[3].v[2]*v->w,
+    .w = m->cols[0].v[3]*v->x+m->cols[1].v[3]*v->y+m->cols[2].v[3]*v->z+m->cols[3].v[3]*v->w,
+  };
+
+  return res;
+}
+
 Mat4 invOrtho(Vec2 wBase, float wWidth, float aspect) {
   float wHeight = wWidth / aspect;
 

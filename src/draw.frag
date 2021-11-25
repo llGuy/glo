@@ -4,6 +4,14 @@ in vec2 fragCoord;
 
 out vec4 outFragColor;
 
+struct Trail {
+  vec2 start;
+  vec2 inbetween[2];
+  vec2 end;
+};
+
+#define MAX_TRAILS 100
+
 layout (std140) uniform SceneData {
   mat4 invOrtho;
   vec2 wMapStart;
@@ -12,6 +20,9 @@ layout (std140) uniform SceneData {
 
   // x,y coordinates; z=orient; w=scale
   vec4 wPlayerProp;
+
+  int trailCount;
+  Trail trails[MAX_TRAILS];
 } uSceneData;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -94,6 +105,13 @@ float mapGrid(vec2 wCoord) {
             vec2(uSceneData.wMapStart.x, 0.0),
             vec2(uSceneData.wMapEnd.x, 0.0))-0.05);
 
+  for (int i = 0; i < uSceneData.trailCount; i++) {
+    d = min(d, sdSegment(
+              wCoord,
+              uSceneData.trails[i].start,
+              uSceneData.trails[i].end)-0.05);
+  }
+
   return d;
 }
 
@@ -118,6 +136,7 @@ void main() {
     }
     else {
       outFragColor += vec4(0.0);
+      // outFragColor += float(uSceneData.trailCount) / 3.0;
     }
   }
 }

@@ -33,7 +33,7 @@ void setBit(BitVector *vec, int index, int bit) {
   }
 }
 
-int getBit(BitVector *vec, int index) {
+int getBit(const BitVector *vec, int index) {
   int byte = index >> 3;
   int n = sizeof(index)*8-3;
   int offset = ((unsigned) index << n) >> n;

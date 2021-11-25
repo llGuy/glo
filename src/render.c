@@ -122,8 +122,8 @@ RenderData *createRenderData(const DrawContext *ctx) {
 }
 
 void render(
-  const DrawContext *ctx,
   const GloState *game,
+  DrawContext *ctx,
   RenderData *renderData) {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -141,11 +141,23 @@ void render(
     renderData->uniformData.invOrtho = invOrtho(
       vec2(me->position.x-mid.x, me->position.y-mid.y), wWidth,
       (float)ctx->width/(float)ctx->height);
+    ctx->invOrtho = renderData->uniformData.invOrtho;
 
     renderData->uniformData.wPlayerProp.x = me->position.x;
     renderData->uniformData.wPlayerProp.y = me->position.y;
     renderData->uniformData.wPlayerProp.z = me->orientation;
     renderData->uniformData.wPlayerProp.w = 0.5f;
+
+    renderData->uniformData.bulletTrailCount = 0;
+    for (int i = 0; i < game->bulletTrailCount; ++i) {
+      if (getBit(&game->bulletOccupation, i)) {
+        renderData->uniformData.bulletTrails[
+          renderData->uniformData.bulletTrailCount] = game->bulletTrails[i];
+
+        renderData->uniformData.bulletTrailCount++;
+      }
+    }
+    
     updateUniformBuffer(renderData);
   }
 

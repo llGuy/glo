@@ -62,6 +62,15 @@ void tickDisplay(DrawContext *ctx) {
 
 GameCommands translateIO(DrawContext *ctx) {
   GameCommands commands = {};
+
+  double x, y;
+  glfwGetCursorPos(ctx->window, &x, &y);
+  y = (double)ctx->height - y;
+  x -= (double)(ctx->width / 2);
+  y -= (double)(ctx->height / 2);
+
+  commands.newOrientation = (float)atan2(x,y);
+  commands.dt = ctx->dt;
   
   if (glfwGetKey(ctx->window, GLFW_KEY_W)) {
     commands.actions.moveUp = 1;
@@ -81,19 +90,20 @@ GameCommands translateIO(DrawContext *ctx) {
     double newShootTime = glfwGetTime();
 
     if (newShootTime - shootTime > 0.3) {
+      /* The shooting actually happened */
       shootTime = newShootTime;
       commands.actions.shoot = 1;
+
+      double nx = x / ((double)ctx->width / 2.0);
+      double ny = y / ((double)ctx->height / 2.0);
+
+      Vec2 pos = vec2((float)nx, (float)ny);
+      Vec4 posv4 = vec4(pos.x, pos.y, 0.0f, 1.0f);
+
+      Vec4 res = mat4_mul_vec4(&ctx->invOrtho, &posv4);
+      commands.wShootTarget = vec2(res.x, res.y);
     }
   }
-
-  double x, y;
-  glfwGetCursorPos(ctx->window, &x, &y);
-  y = (double)ctx->height - y;
-  x -= (double)(ctx->width / 2);
-  y -= (double)(ctx->height / 2);
-
-  commands.newOrientation = (float)atan2(x,y);
-  commands.dt = ctx->dt;
 
   return commands;
 }

@@ -10,6 +10,6 @@ typedef struct BitVector {
 BitVector createBitvec(int nBits);
 void destroyBitvec(BitVector *vec);
 void setBit(BitVector *vec, int index, int bit);
-int getBit(BitVector *vec, int index);
+int getBit(const BitVector *vec, int index);
 
 #endif

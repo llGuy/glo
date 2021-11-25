@@ -8,7 +8,9 @@
 
 #define MAX_PLAYER_COUNT 20
 #define MAX_BULLET_TRAILS 100
+#define MAX_PLAYER_ACTIVE_TRAJECTORIES 4
 #define BASE_SPEED 5.0f
+#define INVALID_TRAJECTORY (-1)
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
 
@@ -16,11 +18,12 @@ typedef struct Player {
   Vec2 position;
   float orientation;
   float speed;
+  char activeTrajectories[MAX_PLAYER_ACTIVE_TRAJECTORIES];
 } Player;
 
 typedef struct BulletTrajectory {
   Vec2 wStart;
-  Vec2 wTrail[5];
+  Vec2 wTrail[2];
   Vec2 wEnd;
 } BulletTrajectory;
 
@@ -40,6 +43,9 @@ typedef struct GameCommands {
 
   /* Frame time in seconds */
   float dt;
+
+  /* Where the user clicks is where the bullet will go */
+  Vec2 wShootTarget;
 } GameCommands;
 
 typedef struct GloState {
@@ -51,15 +57,16 @@ typedef struct GloState {
   int controlled;
 
   /* Need to keep track of all the bullet trails and stuff */
-  BitVector freeBulletTrails;
   int freeBulletTrailCount;
+  BitVector bulletOccupation;
+  unsigned char freeBullets[MAX_BULLET_TRAILS];
   BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
   int bulletTrailCount;
 } GloState;
 
 GloState *createGloState();
 Player createPlayer(Vec2 position);
-int createBulletTrail(GloState *game, Vec2 start, Vec2 direction);
+int createBulletTrail(GloState *game, Vec2 start, Vec2 end);
 void freeBulletTrail(GloState *game, int idx);
 
 #endif

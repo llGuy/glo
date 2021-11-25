@@ -18,7 +18,7 @@ typedef struct DrawContext {
   float dt;
 
   /* For rendering */
-  Mat4 ortho;
+  Mat4 invOrtho;
 } DrawContext;
 
 DrawContext *createDrawContext();
