@@ -25,5 +25,6 @@ DrawContext *createDrawContext();
 bool isContextClosed(DrawContext *ctx);
 void tickDisplay(DrawContext *ctx);
 GameCommands translateIO(DrawContext *ctx);
+float getTime();
 
 #endif

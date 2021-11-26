@@ -11,6 +11,8 @@
 #define MAX_PLAYER_ACTIVE_TRAJECTORIES 4
 #define BASE_SPEED 5.0f
 #define INVALID_TRAJECTORY (-1)
+#define MAX_LAZER_TIME 0.2f
+#define MAX_EXPLOSION_TIME 0.15f
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
 
@@ -23,8 +25,11 @@ typedef struct Player {
 
 typedef struct BulletTrajectory {
   Vec2 wStart;
-  Vec2 wTrail[2];
+  Vec2 wTrail[1];
   Vec2 wEnd;
+  float timeStart;
+
+  char pad[4];
 } BulletTrajectory;
 
 typedef struct GameCommands {

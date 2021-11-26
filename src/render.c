@@ -102,7 +102,7 @@ RenderData *createRenderData(const DrawContext *ctx) {
   renderData->uniformBlockIdx = glGetUniformBlockIndex(
     renderData->shader, "SceneData");
 
-  static const float GRID_SIZE = 8.0f;
+  static const float GRID_SIZE = 6.0f;
   renderData->uniformData.wGridScale = GRID_SIZE;
   renderData->uniformData.wMapStart = vec2(-GRID_SIZE*4.0f, -GRID_SIZE*4.0f);
   renderData->uniformData.wMapEnd = vec2(GRID_SIZE*4.0f,GRID_SIZE*4.0f);
@@ -143,10 +143,19 @@ void render(
       (float)ctx->width/(float)ctx->height);
     ctx->invOrtho = renderData->uniformData.invOrtho;
 
-    renderData->uniformData.wPlayerProp.x = me->position.x;
-    renderData->uniformData.wPlayerProp.y = me->position.y;
-    renderData->uniformData.wPlayerProp.z = me->orientation;
-    renderData->uniformData.wPlayerProp.w = 0.5f;
+    renderData->uniformData.controlledPlayer = game->controlled;
+    renderData->uniformData.playerCount = game->playerCount;
+
+    for (int i = 0; i < game->playerCount; ++i) {
+      const Player *p = &game->players[i];
+      renderData->uniformData.wPlayerProp[i].x = p->position.x;
+      renderData->uniformData.wPlayerProp[i].y = p->position.y;
+      renderData->uniformData.wPlayerProp[i].z = p->orientation;
+      renderData->uniformData.wPlayerProp[i].w = 0.5f;
+    }
+
+    renderData->uniformData.time = getTime();
+    renderData->uniformData.maxLazerTime = MAX_LAZER_TIME;
 
     renderData->uniformData.bulletTrailCount = 0;
     for (int i = 0; i < game->bulletTrailCount; ++i) {

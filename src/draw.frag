@@ -7,23 +7,29 @@ out vec4 outFragColor;
 struct Trail {
   vec2 start;
   vec2 inbetween0;
-  vec2 inbetween1;
   vec2 end;
+  float timeStart;
 };
 
+#define MAX_PLAYERS 20
 #define MAX_TRAILS 100
 
 layout (std140) uniform SceneData {
   mat4 invOrtho;
   vec2 wMapStart;
   vec2 wMapEnd;
+
   float wGridScale;
+  float time;
+  float maxLazerTime;
+  int controlledPlayer;
+  int playerCount;
+  int trailCount;
+
+  Trail trails[MAX_TRAILS];
 
   // x,y coordinates; z=orient; w=scale
-  vec4 wPlayerProp;
-
-  int trailCount;
-  Trail trails[MAX_TRAILS];
+  vec4 wPlayerProp[MAX_PLAYERS];
 } uSceneData;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -72,16 +78,100 @@ float sdUnevenCapsule(vec2 p, float r1, float r2, float h) {
 ///////////////////////////////////////////////////////////////////////////////
 //                                 Rendering                                 //
 ///////////////////////////////////////////////////////////////////////////////
-float mapObjects(in vec2 wCoord) {
+float mapControlledPlayer(in vec2 wCoord) {
   float d = 1e10;
 
+  vec4 controlled = uSceneData.wPlayerProp[uSceneData.controlledPlayer];
+
   // Testing circle
-  d = min(d, 0.3*uSceneData.wPlayerProp.w * sdUnevenCapsule(
-            (rotate(uSceneData.wPlayerProp.z) *
-              (wCoord - uSceneData.wPlayerProp.xy)) / (0.3*uSceneData.wPlayerProp.w),
+  d = min(d, 0.8*controlled.w * sdUnevenCapsule(
+            (rotate(controlled.z) *
+              (wCoord - controlled.xy)) / (0.8*controlled.w),
             0.9f, 0.2f, 3.2f));
 
   return d;
+}
+
+float mapHiddenPlayers(in vec2 wCoord) {
+  float d = 1e10;
+
+  int controlled = uSceneData.controlledPlayer;
+
+  for (int i = 0; i < uSceneData.playerCount; i++) {
+    if (i != controlled) {
+      vec4 prop = uSceneData.wPlayerProp[i];
+      d = min(d, 0.8*prop.w * sdUnevenCapsule(
+                (rotate(prop.z) *
+                 (wCoord - prop.xy)) / (0.8*prop.w),
+                0.9f, 0.2f, 3.2f));
+    }
+  }
+
+
+  return d;
+}
+
+float mapLazers(in vec2 wCoord) {
+  float d = 1e10;
+
+  for (int i = 0; i < uSceneData.trailCount; i++) {
+    float dt = uSceneData.time - uSceneData.trails[i].timeStart;
+    float progress = dt / uSceneData.maxLazerTime;
+
+    if (progress < 1.0) {
+
+      vec2 start = uSceneData.trails[i].start + progress *
+        (uSceneData.trails[i].end - uSceneData.trails[i].start);
+
+      d = min(d, sdSegment(
+                wCoord,
+                start,
+                uSceneData.trails[i].end));
+    }
+  }
+
+  return d;
+}
+
+vec3 lightScene(in vec2 wCoord, float hiddenPlayers) {
+  const float FINAL_LIGHT_INTENSITY = 2.0;
+  bool inPlayer = (hiddenPlayers <= 0.001);
+
+  float d = 1e10;
+
+  vec3 litColor = vec3(0.0);
+
+  for (int i = 0; i < uSceneData.trailCount; i++) {
+    float dt = uSceneData.time - uSceneData.trails[i].timeStart;
+    float progress = dt / uSceneData.maxLazerTime;
+
+    if (progress < 1.0) {
+      vec2 start = uSceneData.trails[i].start + progress *
+        (uSceneData.trails[i].end - uSceneData.trails[i].start);
+
+      d = min(d, sdSegment(
+                wCoord,
+                start,
+                uSceneData.trails[i].end));
+
+      vec2 diff = uSceneData.trails[i].end - wCoord;
+
+      litColor += FINAL_LIGHT_INTENSITY*progress*vec3(1.5, 1.3, 0.5)/dot(diff,diff);
+    }
+    else {
+      vec2 diff = uSceneData.trails[i].end - wCoord;
+      litColor += FINAL_LIGHT_INTENSITY*vec3(1.5, 1.3, 0.5)/dot(diff,diff);
+    }
+  }
+
+  // Get light contribution from lazer beams
+  litColor += 0.2*vec3(1.5, 1.3, 0.5) / (d*d);
+
+  if (dot(litColor,litColor) > 0.01 && inPlayer) {
+    litColor += vec3(litColor);
+  }
+
+  return litColor;
 }
 
 // Grid mapping
@@ -106,38 +196,44 @@ float mapGrid(vec2 wCoord) {
             vec2(uSceneData.wMapStart.x, 0.0),
             vec2(uSceneData.wMapEnd.x, 0.0))-0.05);
 
-  for (int i = 0; i < uSceneData.trailCount; i++) {
-    d = min(d, sdSegment(
-              wCoord,
-              uSceneData.trails[i].start,
-              uSceneData.trails[i].end)-0.05);
-  }
-
   return d;
+}
+
+vec3 calcFinalColor(vec3 color, float exposure) {
+  vec3 one = vec3(1.0);
+  vec3 expValue = exp(-color / vec3(1.0) * exposure);
+  vec3 diff = one - expValue;
+  vec3 gamma = vec3(1.0 / 2.2);
+  return pow(diff, gamma);
 }
 
 void main() {
   vec2 wCoord = (uSceneData.invOrtho * vec4(fragCoord,0.0,1.0)).xy;
-  float d = mapObjects(wCoord);
 
-  outFragColor = vec4(0.0);
+  // Get controlled player SDF
+  float controlledPlayer = mapControlledPlayer(wCoord);
 
-  outFragColor += vec4(1.0, 0.3, 0.2, 1.0) / (d*d);
+  // Get other players's SDF
+  float hiddenPlayers = mapHiddenPlayers(wCoord);
 
-  /*
-  if (d <= 0.0001) {
-    outFragColor = vec4(1.0, 0.3, 0.2, 1.0);
-    outFragColor += 0.2*vec4(1.0, 0.3, 0.2, 1.0) / (d*d);
+  // Lazers SDF (these contribute to lighting)
+  outFragColor = vec4(lightScene(wCoord, hiddenPlayers),1.0);
+
+  if (controlledPlayer <= 0.001) {
+    outFragColor.rgb += vec3(0.2);
   }
-  else*/ {
-    float gridD = mapGrid(wCoord);
 
-    if (gridD <= 0.0001) {
-      outFragColor += vec4(0.1, 0.1, 0.1, 1.0);
-    }
-    else {
-      outFragColor += vec4(0.0);
-      // outFragColor += float(uSceneData.trailCount) / 3.0;
-    }
+  // Grid coloring
+  float gridD = mapGrid(wCoord);
+
+  if (gridD <= 0.0001) {
+    outFragColor += vec4(0.1, 0.1, 0.1, 1.0);
   }
+  else {
+    outFragColor += vec4(0.0);
+  }
+
+
+  // Gamma correction and tone mapping
+  outFragColor.rgb = calcFinalColor(outFragColor.rgb, 0.06);
 }

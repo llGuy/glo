@@ -52,6 +52,7 @@ int createBulletTrail(GloState *game, Vec2 start, Vec2 end) {
 
   trajectory->wStart = start;
   trajectory->wEnd = end;
+  trajectory->timeStart = getTime();
 
   return trajectoryIdx;
 }
@@ -89,10 +90,20 @@ static void predictState(GloState *gameState, GameCommands commands) {
     me->position.x += dt*me->speed;
   }
   if (commands.actions.shoot)  {
-    printf("Shoot\n");
-
     int bulletIdx = createBulletTrail(
       gameState, me->position, commands.wShootTarget);
+  }
+
+  float currentTime = getTime();
+
+  /* Predict which bullets to desintegrate */
+  for (int i = 0; i < gameState->bulletTrailCount; ++i) {
+    if (getBit(&gameState->bulletOccupation, i)) {
+      if (currentTime - gameState->bulletTrails[i].timeStart >=
+          MAX_LAZER_TIME+MAX_EXPLOSION_TIME) {
+        freeBulletTrail(gameState, i);
+      }
+    }
   }
 }
 
@@ -105,6 +116,8 @@ int main(int argc, char *argv[]) {
   /* Create test player */
   gameState->controlled = 0;
   gameState->players[0] = createPlayer(vec2(0.0f, 0.0f));
+  gameState->players[1] = createPlayer(vec2(0.0f, 0.0f));
+  gameState->playerCount = 2;
 
   bool isRunning = true;
 

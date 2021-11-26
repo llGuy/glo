@@ -108,6 +108,10 @@ GameCommands translateIO(DrawContext *ctx) {
   return commands;
 }
 
+float getTime() {
+  return glfwGetTime();
+}
+
 /* Callback definitions - todo if necessary */
 static void keyCallback(int k, int s, int a, int m) {
   

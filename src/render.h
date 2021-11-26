@@ -17,20 +17,27 @@ typedef struct UniformData {
   /* Start and end coordinates of the map to draw the grid. */
   Vec2 wMapStart;
   Vec2 wMapEnd;
+
   float wGridScale;
 
   /* Will see some padding due to layout std140 */
-  char pad0[12];
+  // char pad0[12];
 
-  /* x,y coordinates; z=orient; w=scale */
-  Vec4 wPlayerProp;
+  float time;
+  float maxLazerTime;
+
+  int controlledPlayer;
+  int playerCount;
 
   /* Bullet trails */
   int bulletTrailCount;
 
-  char pad1[12];
+  char pad[8];
 
   BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
+
+  /* x,y coordinates; z=orient; w=scale */
+  Vec4 wPlayerProp[MAX_PLAYER_COUNT];
 
 } UniformData;
 
