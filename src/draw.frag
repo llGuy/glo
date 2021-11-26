@@ -6,7 +6,8 @@ out vec4 outFragColor;
 
 struct Trail {
   vec2 start;
-  vec2 inbetween[2];
+  vec2 inbetween0;
+  vec2 inbetween1;
   vec2 end;
 };
 
