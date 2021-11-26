@@ -67,6 +67,10 @@ typedef struct GloState {
   unsigned char freeBullets[MAX_BULLET_TRAILS];
   BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
   int bulletTrailCount;
+
+  float gridBoxSize;
+  /* In grid boxes */
+  float gridWidth;
 } GloState;
 
 GloState *createGloState();

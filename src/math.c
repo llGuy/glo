@@ -2,6 +2,11 @@
 
 #include "math.h"
 
+float clamp(float d, float min, float max) {
+  const double t = d < min ? min : d;
+  return t > max ? max : t;
+}
+
 Vec2 vec2_orient(float orientation) {
   Vec2 v = {
     .x = cosf(orientation), .y = sinf(orientation)

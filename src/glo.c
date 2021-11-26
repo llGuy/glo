@@ -1,4 +1,5 @@
 #include <time.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,8 @@ GloState *createGloState() {
   memset(state, 0, sizeof(GloState));
 
   state->bulletOccupation = createBitvec(MAX_BULLET_TRAILS);
+  state->gridBoxSize = 6.0f;
+  state->gridWidth = 8.0f;
 
   return state;
 }
@@ -68,7 +71,18 @@ void freeBulletTrail(GloState *game, int idx) {
   }
 }
 
-/* Predict the state of the player */
+static Vec2 keepInGridBounds(GloState *gameState, Vec2 wPos) {
+  float radius = gameState->gridWidth / 2.0f;
+
+  wPos.x = clamp(
+    wPos.x, -radius*gameState->gridBoxSize, radius*gameState->gridBoxSize);
+  wPos.y = clamp(
+    wPos.y, -radius*gameState->gridBoxSize, radius*gameState->gridBoxSize);
+
+  return wPos;
+}
+
+/* Predict the state of the local game */
 static void predictState(GloState *gameState, GameCommands commands) {
   float dt = commands.dt;
   Player *me = &gameState->players[gameState->controlled];
@@ -93,6 +107,8 @@ static void predictState(GloState *gameState, GameCommands commands) {
     int bulletIdx = createBulletTrail(
       gameState, me->position, commands.wShootTarget);
   }
+
+  me->position = keepInGridBounds(gameState, me->position);
 
   float currentTime = getTime();
 

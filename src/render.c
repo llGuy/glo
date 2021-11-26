@@ -166,7 +166,14 @@ void render(
         renderData->uniformData.bulletTrailCount++;
       }
     }
-    
+
+    renderData->uniformData.wGridScale = game->gridBoxSize;
+    float radius = game->gridWidth / 2.0f;
+    renderData->uniformData.wMapStart = vec2(
+      -game->gridBoxSize*radius, -game->gridBoxSize*radius);
+    renderData->uniformData.wMapEnd = vec2(
+      game->gridBoxSize*radius, game->gridBoxSize*radius);
+
     updateUniformBuffer(renderData);
   }
 
