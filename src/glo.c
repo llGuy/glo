@@ -126,11 +126,26 @@ static void predictState(GloState *gameState, GameCommands commands) {
 }
 
 #ifdef BUILD_CLIENT
-/* Client entry point */
+/*****************************************************************************/
+/*                             Client entry point                            */
+/*****************************************************************************/
+static uint16_t getPort(int argc, char *argv[]) {
+  if (argc > 1) {
+    return atoi(argv[1]);
+  }
+  else {
+    return MAIN_SOCKET_PORT_CLIENT;
+  }
+}
+
 int main(int argc, char *argv[]) {
   DrawContext *drawContext = createDrawContext();
   RenderData *renderData = createRenderData(drawContext);
   GloState *gameState = createGloState();
+
+  /* May add ability to change port */
+  uint16_t port = getPort(argc, argv);
+  Client client = createClient(port);
 
   /* Create test player */
   gameState->controlled = 0;
@@ -141,6 +156,8 @@ int main(int argc, char *argv[]) {
   bool isRunning = true;
 
   while (isRunning) {
+    tickClient(&client);
+
     GameCommands commands = translateIO(drawContext);
     predictState(gameState, commands);
 
@@ -153,6 +170,9 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 #else
+/*****************************************************************************/
+/*                             Server entry point                            */
+/*****************************************************************************/
 static Server server;
 
 static void handleCtrlC(int signum) {
@@ -169,7 +189,7 @@ int main(int argc, char *argv[]) {
   printf("Started server session\n");
 
   while (true) {
-    
+    tickServer(&server);
   }
 
   return 0;

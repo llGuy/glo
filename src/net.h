@@ -13,6 +13,8 @@ typedef struct Client {
   int mainSocket;
   uint16_t mainSocketPort;
   GameCommands commandStack[MAX_COMMANDS];
+
+  uint32_t serverAddr;
 } Client;
 
 typedef struct Server {
@@ -26,11 +28,15 @@ typedef struct Server {
 /*                                   Client                                  */
 /*****************************************************************************/
 Client createClient(uint16_t mainPort);
+void getServerAddress(Client *c);
+void tickClient(Client *c);
+void destroyClient(Client *);
 
 /*****************************************************************************/
 /*                                   Server                                  */
 /*****************************************************************************/
 Server createServer();
+void tickServer(Server *s);
 void destroyServer(Server *s);
 
 #endif
