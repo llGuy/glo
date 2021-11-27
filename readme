@@ -1,1 +1,12 @@
 Going old-school ;)
+
+---
+
+Project structure:
+- glo.h and glo.c: main files with gameplay and entry points
+- render.h and render.c: files for rendering
+- net.h and net.c: files for networking and synchronization
+- draw.vert and draw.frag: shader files for rendering the scene
+- math.h and math.c: files for math
+- io.h and io.c: files for windowing and input handling
+- Makefile: to compile

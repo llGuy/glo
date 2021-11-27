@@ -1,12 +1,14 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
 #include "io.h"
 #include "glo.h"
+#include "net.h"
 #include "render.h"
 
 /* Initializes default game state - ready to join/create a game. */
@@ -123,7 +125,8 @@ static void predictState(GloState *gameState, GameCommands commands) {
   }
 }
 
-/* Entry point */
+#ifdef BUILD_CLIENT
+/* Client entry point */
 int main(int argc, char *argv[]) {
   DrawContext *drawContext = createDrawContext();
   RenderData *renderData = createRenderData(drawContext);
@@ -149,3 +152,26 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+#else
+static Server server;
+
+static void handleCtrlC(int signum) {
+  destroyServer(&server);
+  printf("Stopped server session\n");
+  exit(signum);
+}
+
+/* Server entry point */
+int main(int argc, char *argv[]) {
+  signal(SIGINT, handleCtrlC);
+
+  server = createServer();
+  printf("Started server session\n");
+
+  while (true) {
+    
+  }
+
+  return 0;
+}
+#endif
