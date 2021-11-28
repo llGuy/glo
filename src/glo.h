@@ -12,6 +12,7 @@
 #define BASE_SPEED 5.0f
 #define INVALID_TRAJECTORY (-1)
 #define MAX_LAZER_TIME 0.2f
+#define RECOIL_TIME 0.1f
 #define MAX_EXPLOSION_TIME 0.15f
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
@@ -20,7 +21,14 @@ typedef struct Player {
   Vec2 position;
   float orientation;
   float speed;
+
+  /* May not be needed */
   char activeTrajectories[MAX_PLAYER_ACTIVE_TRAJECTORIES];
+
+  struct {
+    uint8_t isInitialized: 1;
+    uint8_t pad: 7;
+  } flags;
 } Player;
 
 typedef struct BulletTrajectory {
@@ -33,14 +41,17 @@ typedef struct BulletTrajectory {
 } BulletTrajectory;
 
 typedef struct GameCommands {
-  struct {
-    uint32_t moveUp : 1;
-    uint32_t moveLeft : 1;
-    uint32_t moveDown : 1;
-    uint32_t moveRight : 1;
-    uint32_t shoot : 1;
-    /* Add other commands and powers in the future like dash or whatever. */
-    uint32_t pad : 27;
+  union {
+    struct {
+      uint32_t moveUp : 1;
+      uint32_t moveLeft : 1;
+      uint32_t moveDown : 1;
+      uint32_t moveRight : 1;
+      uint32_t shoot : 1;
+      /* Add other commands and powers in the future like dash or whatever. */
+      uint32_t pad : 27;
+    };
+    uint32_t bytes;
   } actions;
 
   /* Orientation is calculated by diffing cursor pos with center */
@@ -75,6 +86,7 @@ typedef struct GloState {
 
 GloState *createGloState();
 Player createPlayer(Vec2 position);
+Player *spawnPlayer(GloState *game, int idx);
 int createBulletTrail(GloState *game, Vec2 start, Vec2 end);
 void freeBulletTrail(GloState *game, int idx);
 

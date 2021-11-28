@@ -1,6 +1,9 @@
 #ifndef _MATH_H_
 #define _MATH_H_
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 typedef union Vec2 {
   struct {float x, y;};
   float v[2];
@@ -24,6 +27,8 @@ typedef struct Rect2D {
 /*                              Scalar functions                             */
 /*****************************************************************************/
 float clamp(float d, float min, float max);
+float randomf(float min, float max);
+int eqf(float a, float b, float prec);
 
 /*****************************************************************************/
 /*                           Constructor functions                           */

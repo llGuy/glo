@@ -10,3 +10,23 @@ Project structure:
 - math.h and math.c: files for math
 - io.h and io.c: files for windowing and input handling
 - Makefile: to compile
+
+---
+
+Network protocol:
+
+All packets start with a header of 4 bytes defined in net.h, after
+which comes the payload for the packet. Here are the definitions
+of each:
+
+- DISCOVER (client->server):
+  [empty]
+
+- CONNECT (server->client):
+  playerCount (4 bytes) | playerInfo[]
+
+- COMMANDS (client->server):
+  commandCount (4 bytes) | commands[] | predictedState
+
+- DISCONNECT (client<->server):
+  disconnectedPlayer (4 bytes)

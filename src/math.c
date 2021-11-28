@@ -1,10 +1,19 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "math.h"
 
 float clamp(float d, float min, float max) {
   const double t = d < min ? min : d;
   return t > max ? max : t;
+}
+
+float randomf(float min, float max){
+  return ((max - min) * ((float)rand() / (float)RAND_MAX)) + min;
+}
+
+int eqf(float a, float b, float prec) {
+  return fabs(a-b) < prec;
 }
 
 Vec2 vec2_orient(float orientation) {

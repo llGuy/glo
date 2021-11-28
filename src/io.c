@@ -6,6 +6,8 @@
 
 #include "io.h"
 
+bool gSimulatePacketLoss = false;
+
 /* Callback prototypes */
 static void keyCallback(int,int,int,int);
 static void mouseButtonCallback(int,int,int);
@@ -89,7 +91,7 @@ GameCommands translateIO(DrawContext *ctx) {
 
     double newShootTime = glfwGetTime();
 
-    if (newShootTime - shootTime > 0.3) {
+    if (newShootTime - shootTime > RECOIL_TIME) {
       /* The shooting actually happened */
       shootTime = newShootTime;
       commands.actions.shoot = 1;
@@ -103,6 +105,14 @@ GameCommands translateIO(DrawContext *ctx) {
       Vec4 res = mat4_mul_vec4(&ctx->invOrtho, &posv4);
       commands.wShootTarget = vec2(res.x, res.y);
     }
+  }
+
+  /* For debugging */
+  if (glfwGetKey(ctx->window, GLFW_KEY_E)) {
+    gSimulatePacketLoss = true;
+  }
+  else {
+    gSimulatePacketLoss = false;
   }
 
   return commands;

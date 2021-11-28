@@ -1,1 +1,13 @@
-- create server program
+- server update client's positions
+- server send packet with new players join
+- server send game state packets to new players
+- client interpolate between the game states
+### don't deal with the bullet trails just yet
+
+
+- client send prediction
+- server check prediction
+- client correct prediction errors
+
+- add bullet trails
+- add killing

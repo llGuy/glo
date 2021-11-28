@@ -38,6 +38,28 @@ Player createPlayer(Vec2 position) {
   return player;
 }
 
+/* Creates a player and spawns at a random location */
+Player *spawnPlayer(GloState *game, int idx) {
+  Player *player = &game->players[idx];
+  player->flags.isInitialized = 1;
+
+  float radius = game->gridWidth / 2.0f;
+
+  Vec2 mapStart = vec2(-game->gridBoxSize*radius, -game->gridBoxSize*radius);
+  Vec2 mapEnd = vec2(game->gridBoxSize*radius, game->gridBoxSize*radius);
+
+  player->position.x = randomf(mapStart.x, mapEnd.x);
+  player->position.y = randomf(mapStart.y, mapEnd.y);
+  player->orientation = randomf(0.0f, 6.3f);
+  player->speed = BASE_SPEED;
+
+  for (int i = 0; i < MAX_PLAYER_ACTIVE_TRAJECTORIES; ++i) {
+    player->activeTrajectories[i] = INVALID_TRAJECTORY;
+  }
+
+  return player;
+}
+
 /* Needs to add to the trajectories array */
 int createBulletTrail(GloState *game, Vec2 start, Vec2 end) {
   int trajectoryIdx = -1;
@@ -84,33 +106,33 @@ static Vec2 keepInGridBounds(GloState *gameState, Vec2 wPos) {
   return wPos;
 }
 
-/* Predict the state of the local game */
-static void predictState(GloState *gameState, GameCommands commands) {
+static void updatePlayerState(
+  GloState *gameState, GameCommands commands,
+  Player *player) {
   float dt = commands.dt;
-  Player *me = &gameState->players[gameState->controlled];
 
   /* Update orientation */
-  me->orientation = commands.newOrientation;
+  player->orientation = commands.newOrientation;
 
   /* Update position */
   if (commands.actions.moveUp) {
-    me->position.y += dt*me->speed;
+    player->position.y += dt*player->speed;
   }
   if (commands.actions.moveLeft) {
-    me->position.x += -dt*me->speed;
+    player->position.x += -dt*player->speed;
   }
   if (commands.actions.moveDown) {
-    me->position.y += -dt*me->speed;
+    player->position.y += -dt*player->speed;
   }
   if (commands.actions.moveRight) {
-    me->position.x += dt*me->speed;
+    player->position.x += dt*player->speed;
   }
   if (commands.actions.shoot)  {
     int bulletIdx = createBulletTrail(
-      gameState, me->position, commands.wShootTarget);
+      gameState, player->position, commands.wShootTarget);
   }
 
-  me->position = keepInGridBounds(gameState, me->position);
+  player->position = keepInGridBounds(gameState, player->position);
 
   float currentTime = getTime();
 
@@ -123,6 +145,14 @@ static void predictState(GloState *gameState, GameCommands commands) {
       }
     }
   }
+}
+
+/* Predict the state of the local game */
+static void predictState(GloState *gameState, GameCommands commands) {
+  float dt = commands.dt;
+  Player *me = &gameState->players[gameState->controlled];
+
+  updatePlayerState(gameState, commands, me);
 }
 
 #ifdef BUILD_CLIENT
@@ -146,19 +176,23 @@ int main(int argc, char *argv[]) {
   /* May add ability to change port */
   uint16_t port = getPort(argc, argv);
   Client client = createClient(port);
+  waitForGameState(&client, gameState);
 
+#if 0
   /* Create test player */
   gameState->controlled = 0;
-  gameState->players[0] = createPlayer(vec2(0.0f, 0.0f));
-  gameState->players[1] = createPlayer(vec2(0.0f, 0.0f));
+  spawnPlayer(gameState, 0);
+  spawnPlayer(gameState, 1);
   gameState->playerCount = 2;
+#endif
 
   bool isRunning = true;
 
   while (isRunning) {
-    tickClient(&client);
+    tickClient(&client, gameState);
 
     GameCommands commands = translateIO(drawContext);
+    pushGameCommands(&client, &commands);
     predictState(gameState, commands);
 
     render(gameState, drawContext, renderData);
@@ -181,15 +215,44 @@ static void handleCtrlC(int signum) {
   exit(signum);
 }
 
+/* The server is the program which authoritatively updates the game state */
+static void tickGameState(Server *s, GloState *game) {
+  for (int i = 0; i < s->clientCount; ++i) {
+    Client *c = &s->clients[i];
+
+    if (c->id != INVALID_CLIENT_ID) {
+      Player *player = &game->players[c->id];
+
+      /* Grind through those commands! */
+      for (int command = 0; command < c->commandCount; ++command) {
+        updatePlayerState(game, c->commandStack[command], player);
+      }
+
+      /* Does the predicted state match the actual state? */
+      if (!eqf(player->position.x, c->predicted.position.x, 0.0001f) ||
+          !eqf(player->position.y, c->predicted.position.y, 0.0001f) ||
+          !eqf(player->orientation, c->predicted.orientation, 0.0001f) ||
+          !eqf(player->speed, c->predicted.speed, 0.0001f)) {
+        printf("Predicted ERROR!!!\n");
+      }
+
+      c->commandCount = 0;
+    }
+  }
+}
+
 /* Server entry point */
 int main(int argc, char *argv[]) {
+  GloState *gameState = createGloState();
+
   signal(SIGINT, handleCtrlC);
 
   server = createServer();
   printf("Started server session\n");
 
   while (true) {
-    tickServer(&server);
+    tickServer(&server, gameState);
+    tickGameState(&server, gameState);
   }
 
   return 0;

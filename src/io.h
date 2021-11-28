@@ -27,4 +27,6 @@ void tickDisplay(DrawContext *ctx);
 GameCommands translateIO(DrawContext *ctx);
 float getTime();
 
+extern bool gSimulatePacketLoss;
+
 #endif
