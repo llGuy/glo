@@ -151,6 +151,10 @@ void render(
     renderData->uniformData.controlledPlayer = game->controlled;
     renderData->uniformData.playerCount = game->playerCount;
 
+    if (game->playerCount > 1) {
+      printf("More than 1 player\n");
+    }
+
     for (int i = 0; i < game->playerCount; ++i) {
       const Player *p = &game->players[i];
       renderData->uniformData.wPlayerProp[i].x = p->position.x;

@@ -328,6 +328,7 @@ static uint32_t deserializeConnect(Client *c, GloState *game, uint32_t *msgPtr) 
       player->position.y = deserializeFloat32(msgBuffer, msgPtr);
       player->orientation = deserializeFloat32(msgBuffer, msgPtr);
       player->speed = deserializeFloat32(msgBuffer, msgPtr);
+      player->flags.isInitialized = 1;
     }
   }
 
@@ -339,6 +340,13 @@ static uint32_t serializeSnapshot(
   Server *s, GloState *game, uint32_t *msgPtr) {
   /* Place holder value to be filled in after function is called */
   serializeByte((unsigned char)0, msgBuffer, msgPtr);
+
+  /* New client count */
+  serializeUint32(s->newClientCount, msgBuffer, msgPtr);
+  for (int i = 0; i < s->newClientCount; ++i) {
+    serializeUint32((uint32_t)s->newClientStack[i], msgBuffer, msgPtr);
+    /* May serialize other things like lazer colors, etc... */
+  }
 
   /* Players[] */
   for (int i = 0; i < s->clientCount; ++i) {
@@ -373,6 +381,24 @@ static uint32_t deserializeSnapshot(
   /* Place holder value to be filled in after function is called */
   c->flags.predictionError = deserializeByte(msgBuffer, msgPtr);
 
+  uint32_t newClientsCount = deserializeUint32(msgBuffer, msgPtr);
+
+  for (int i = 0; i < newClientsCount; ++i) {
+    uint32_t id = deserializeUint32(msgBuffer, msgPtr);
+
+    if (id != game->controlled) {
+      printf("New player joined!\n");
+      Player *p = spawnPlayer(game, id);
+      p->snapshotStart = 0;
+      p->snapshotEnd = 0;
+      p->progress = 0.0f;
+      p->flags.justJoined = 1;
+      p->flags.isInitialized = 1;
+      
+      (void)p;
+    }
+  }
+
   /* Players[] */
   for (int i = 0; i < game->playerCount; ++i) {
     Player *currentPlayer = &game->players[i];
@@ -388,12 +414,28 @@ static uint32_t deserializeSnapshot(
     else {
       Player *player = &game->players[currentID];
       if (currentID != game->controlled) {
-        player->position.x = deserializeFloat32(msgBuffer, msgPtr);
-        player->position.y = deserializeFloat32(msgBuffer, msgPtr);
-        player->orientation = deserializeFloat32(msgBuffer, msgPtr);
+        /* This isn't us - we add a snapshot! */
+        PlayerSnapshot snapshot;
+
+        snapshot.position.x = deserializeFloat32(msgBuffer, msgPtr);
+        snapshot.position.y = deserializeFloat32(msgBuffer, msgPtr);
+        snapshot.orientation = deserializeFloat32(msgBuffer, msgPtr);
+
+        /* Push the snapshot! */
+        player->snapshots[player->snapshotEnd] = snapshot;
+        player->snapshotEnd = (player->snapshotEnd + 1)%MAX_PLAYER_SNAPSHOTS;
+
+        if (player->flags.justJoined) {
+          player->position = snapshot.position;
+          player->orientation = snapshot.orientation;
+          player->flags.justJoined = 0;
+        }
+
+        /* We don't realy care about speed for remote players */
         player->speed = deserializeFloat32(msgBuffer, msgPtr);
       }
       else if (c->flags.predictionError) {
+        /* We need to force these new positions on controlled player */
         printf("Made prediction error\n");
         player->position.x = deserializeFloat32(msgBuffer, msgPtr);
         player->position.y = deserializeFloat32(msgBuffer, msgPtr);
@@ -402,6 +444,11 @@ static uint32_t deserializeSnapshot(
 
         /* Reset the command stack */
         c->commandCount = 0;
+      }
+      else {
+        for (int d = 0; d < 4; ++d) {
+          deserializeFloat32(msgBuffer, msgPtr);
+        }
       }
     }
   }
@@ -642,6 +689,8 @@ void tickServer(Server *server, GloState *game) {
         sendSnapshotToClient(server, c, msgPtr);
       }
     }
+
+    server->newClientCount = 0;
   }
 
   /* Receive packets from the clients */
@@ -666,6 +715,8 @@ void tickServer(Server *server, GloState *game) {
         c->clientAddr = addr.sin_addr.s_addr;
         c->clientPort = addr.sin_port;
         c->flags.isConnected = 1;
+
+        server->newClientStack[server->newClientCount++] = (unsigned char)id;
 
         /* Initialize predicted data */
         Player *p = spawnPlayer(game, id);

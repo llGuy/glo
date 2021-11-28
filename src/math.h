@@ -29,6 +29,7 @@ typedef struct Rect2D {
 float clamp(float d, float min, float max);
 float randomf(float min, float max);
 int eqf(float a, float b, float prec);
+float lerp(float a, float b, float progress);
 
 /*****************************************************************************/
 /*                           Constructor functions                           */

@@ -48,12 +48,25 @@ typedef struct Client {
 } Client;
 
 typedef struct Server {
+  /* Main socket through which the server will send and receive messages */
   int mainSocket;
+
+  /* Keeps track of all the active clients */
   int clientCount;
   Client clients[MAX_PLAYER_COUNT];
+
+  /* Keeps track of the indices at which clients have been freed from above */
   int freeClientCount;
+
+  /* Each bit corresponds to whether a client is active in the clients array */
   BitVector clientOccupation;
+
+  /* Stack of free client indices */
   unsigned char freeClients[MAX_BULLET_TRAILS];
+
+  /* Stack of new client indices to send in the next snapshot */
+  uint32_t newClientCount;
+  unsigned char newClientStack[MAX_PLAYER_COUNT];
 
   float lastSnapshotSend;
 } Server;

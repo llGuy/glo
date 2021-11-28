@@ -16,6 +16,10 @@ int eqf(float a, float b, float prec) {
   return fabs(a-b) < prec;
 }
 
+float lerp(float a, float b, float progress) {
+  return a + (b-a) * progress;
+}
+
 Vec2 vec2_orient(float orientation) {
   Vec2 v = {
     .x = cosf(orientation), .y = sinf(orientation)

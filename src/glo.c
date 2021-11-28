@@ -57,6 +57,8 @@ Player *spawnPlayer(GloState *game, int idx) {
     player->activeTrajectories[i] = INVALID_TRAJECTORY;
   }
 
+  game->playerCount = MAX(game->playerCount, (idx+1));
+
   return player;
 }
 
@@ -157,6 +159,52 @@ static void predictState(GloState *gameState, GameCommands commands) {
   updatePlayerState(gameState, commands, me);
 }
 
+static void interpolateState(GloState *gameState, float dt) {
+  for (int i = 0; i < gameState->playerCount; ++i) {
+    Player *p = &gameState->players[i];
+    /* We want to interpolate state for all remote players */
+    if (p->flags.isInitialized && i != gameState->controlled) {
+      int b = p->snapshotStart, e = p->snapshotEnd;
+      uint32_t snapshotCount = (e-b+MAX_PLAYER_SNAPSHOTS) % MAX_PLAYER_SNAPSHOTS;
+
+      printf(
+        "\t\t\t%f Currently have %d snapshots for player %d\n",
+        p->progress,
+        snapshotCount,
+        i);
+
+      if (snapshotCount >= 3) {
+        /* We need to make sure that there are enough snapshots so as to
+           avoid halting */
+        p->progress += dt/SNAPSHOT_PACKET_INTERVAL;
+        if (p->progress >= 1.0f) {
+          float newProgress = p->progress - floorf(p->progress);
+          uint32_t skipCount = (uint32_t)(floorf(p->progress));
+
+          p->progress = newProgress;
+
+          b = (b+skipCount)%MAX_PLAYER_SNAPSHOTS;
+
+          printf("RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
+        }
+
+        PlayerSnapshot *s0 = &p->snapshots[b];
+        PlayerSnapshot *s1 = &p->snapshots[(b+1)%MAX_PLAYER_SNAPSHOTS];
+
+
+        p->position.x = lerp(s0->position.x, s1->position.x, p->progress);
+        printf("%f -> %f = %f\n", s0->position.x, s1->position.x, p->position.x);
+
+        p->position.y = lerp(s0->position.y, s1->position.y, p->progress);
+        p->orientation = lerp(s0->orientation, s1->orientation, p->progress);
+
+        p->snapshotStart = b;
+        p->snapshotEnd = e;
+      }
+    }
+  }
+}
+
 #ifdef BUILD_CLIENT
 /*****************************************************************************/
 /*                             Client entry point                            */
@@ -196,6 +244,7 @@ int main(int argc, char *argv[]) {
     GameCommands commands = translateIO(drawContext);
     pushGameCommands(&client, &commands);
     predictState(gameState, commands);
+    interpolateState(gameState, drawContext->dt);
 
     render(gameState, drawContext, renderData);
     tickDisplay(drawContext);

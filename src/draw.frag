@@ -172,7 +172,9 @@ vec3 lightScene(in vec2 wCoord, float hiddenPlayers) {
     litColor += vec3(litColor) * 5.0;
   }
 #else
-  litColor += vec3(0.5);
+  if (inPlayer) {
+    litColor += vec3(0.5);
+  }
 #endif
 
   return litColor;
