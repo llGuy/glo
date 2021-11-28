@@ -1,8 +1,2 @@
-- server send packet with new players join
-- server send game state packets to new players
-- client interpolate between the game states
-### don't deal with the bullet trails just yet
-
-
 - add bullet trails
 - add killing

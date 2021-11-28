@@ -193,10 +193,9 @@ static void interpolateState(GloState *gameState, float dt) {
 
 
         p->position.x = lerp(s0->position.x, s1->position.x, p->progress);
-        printf("%f -> %f = %f\n", s0->position.x, s1->position.x, p->position.x);
-
         p->position.y = lerp(s0->position.y, s1->position.y, p->progress);
         p->orientation = lerp(s0->orientation, s1->orientation, p->progress);
+        printf("%f -> %f = %f\n", s0->orientation, s1->orientation, p->orientation);
 
         p->snapshotStart = b;
         p->snapshotEnd = e;
@@ -302,6 +301,7 @@ static void tickGameState(Server *s, GloState *game) {
       else {
         c->flags.predictionError = 0;
         player->position = copy;
+        player->orientation = c->predicted.orientation;
       }
 
       c->commandCount = 0;
