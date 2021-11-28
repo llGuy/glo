@@ -225,19 +225,34 @@ static void tickGameState(Server *s, GloState *game) {
     if (c->id != INVALID_CLIENT_ID) {
       Player *player = &game->players[c->id];
 
+      Vec2 copy = player->position;
+
       /* Grind through those commands! */
       for (int command = 0; command < c->commandCount; ++command) {
-        updatePlayerState(game, c->commandStack[command], player);
+        GameCommands commands = c->commandStack[command];
+        if (commands.actions.moveUp) {
+          copy.y += commands.dt*player->speed;
+        }
+        if (commands.actions.moveLeft) {
+          copy.x += -commands.dt*player->speed;
+        }
+        if (commands.actions.moveDown) {
+          copy.y += -commands.dt*player->speed;
+        }
+        if (commands.actions.moveRight) {
+          copy.x += commands.dt*player->speed;
+        }
       }
 
       /* Does the predicted state match the actual state? */
-      if (!eqf(player->position.x, c->predicted.position.x, 0.0001f) ||
-          !eqf(player->position.y, c->predicted.position.y, 0.0001f) ||
-          !eqf(player->orientation, c->predicted.orientation, 0.0001f) ||
-          !eqf(player->speed, c->predicted.speed, 0.0001f)) {
-        if (!c->flags.predictionError)
-          printf("Predicted ERROR %d!!!\n", c->commandCount);
+      if (!eqf(copy.x, c->predicted.position.x, 0.0001f) ||
+          !eqf(copy.y, c->predicted.position.y, 0.0001f)) {
+        /* Prediction error - the client needs to fix this immediately */
         c->flags.predictionError = 1;
+      }
+      else {
+        c->flags.predictionError = 0;
+        player->position = copy;
       }
 
       c->commandCount = 0;

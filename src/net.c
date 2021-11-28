@@ -394,6 +394,16 @@ static uint32_t deserializeSnapshot(
         player->orientation = deserializeFloat32(msgBuffer, msgPtr);
         player->speed = deserializeFloat32(msgBuffer, msgPtr);
       }
+      else if (c->flags.predictionError) {
+        printf("Made prediction error\n");
+        player->position.x = deserializeFloat32(msgBuffer, msgPtr);
+        player->position.y = deserializeFloat32(msgBuffer, msgPtr);
+        player->orientation = deserializeFloat32(msgBuffer, msgPtr);
+        player->speed = deserializeFloat32(msgBuffer, msgPtr);
+
+        /* Reset the command stack */
+        c->commandCount = 0;
+      }
     }
   }
 
@@ -500,10 +510,6 @@ void tickClient(Client *c, GloState *game) {
         case PT_SNAPSHOT: {
           printf("Received snapshot\n");
           deserializeSnapshot(c, game, &msgPtr);
-
-          if (c->flags.predictionError) {
-            printf("Prediction error bitch\n");
-          }
         } break;
 
           /* Other stuff... */

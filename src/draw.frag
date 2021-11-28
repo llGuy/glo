@@ -227,12 +227,11 @@ void main() {
   float gridD = mapGrid(wCoord);
 
   if (gridD <= 0.0001) {
-    outFragColor += vec4(0.1, 0.1, 0.1, 1.0);
+    outFragColor += vec4(0.5);
   }
   else {
     outFragColor += vec4(0.0);
   }
-
 
   // Gamma correction and tone mapping
   outFragColor.rgb = calcFinalColor(outFragColor.rgb, 0.06);
