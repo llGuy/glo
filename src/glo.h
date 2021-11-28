@@ -14,8 +14,14 @@
 #define MAX_LAZER_TIME 0.2f
 #define RECOIL_TIME 0.1f
 #define MAX_EXPLOSION_TIME 0.15f
+#define MAX_PLAYER_SNAPSHOTS 5
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
+typedef struct PlayerSnapshot {
+  /* Only two things that we need to interpolate between */
+  Vec2 position;
+  float orientation;
+} PlayerSnapshot;
 
 typedef struct Player {
   Vec2 position;
@@ -29,6 +35,11 @@ typedef struct Player {
     uint8_t isInitialized: 1;
     uint8_t pad: 7;
   } flags;
+
+  float progress;
+  uint32_t startSnapshot;
+  uint32_t snapshotCount;
+  PlayerSnapshot snapshots[MAX_PLAYER_SNAPSHOTS];
 } Player;
 
 typedef struct BulletTrajectory {

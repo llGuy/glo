@@ -75,6 +75,11 @@ RenderData *createRenderData(const DrawContext *ctx) {
   RenderData *renderData = (RenderData *)malloc(sizeof(RenderData));
   memset(renderData, 0, sizeof(RenderData));
 
+  /* We need to create a vao for Macos */
+  uint32_t vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
   /* Create the shader which renders the scene */
   uint32_t vsh = glCreateShader(GL_VERTEX_SHADER);
   uint32_t fsh = glCreateShader(GL_FRAGMENT_SHADER);

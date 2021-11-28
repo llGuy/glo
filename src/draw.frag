@@ -167,9 +167,13 @@ vec3 lightScene(in vec2 wCoord, float hiddenPlayers) {
   // Get light contribution from lazer beams
   litColor += 0.2*vec3(1.5, 1.3, 0.5) / (d*d);
 
+#if 0
   if (dot(litColor,litColor) > 0.01 && inPlayer) {
     litColor += vec3(litColor) * 5.0;
   }
+#else
+  litColor += vec3(0.5);
+#endif
 
   return litColor;
 }
