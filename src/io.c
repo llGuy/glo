@@ -16,6 +16,10 @@ static void scrollCallback(float,float);
 static void closeCallback();
 static void cursorMoveCallback(float,float);
 
+void initializeGLFW() {
+  glfwInit();
+}
+
 DrawContext *createDrawContext() {
   DrawContext *ctx = (DrawContext *)malloc(sizeof(DrawContext));
 
@@ -26,7 +30,7 @@ DrawContext *createDrawContext() {
   ctx->height = height;
 
   /* Windowing */
-  glfwInit();
+  initializeGLFW();
 
 #if __APPLE__
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);

@@ -7,6 +7,7 @@
 
 /* Time separating two command packets send */
 #define COMMANDS_PACKET_INTERVAL 0.1f
+#define SNAPSHOT_PACKET_INTERVAL 0.15f
 #define MAIN_SOCKET_PORT_CLIENT 6000
 #define MAIN_SOCKET_PORT_SERVER 5999
 #define INVALID_CLIENT_ID 0x42
@@ -48,12 +49,13 @@ typedef struct Client {
 
 typedef struct Server {
   int mainSocket;
-
   int clientCount;
   Client clients[MAX_PLAYER_COUNT];
   int freeClientCount;
   BitVector clientOccupation;
   unsigned char freeClients[MAX_BULLET_TRAILS];
+
+  float lastSnapshotSend;
 } Server;
 
 enum PacketType {

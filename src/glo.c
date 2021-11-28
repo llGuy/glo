@@ -114,6 +114,8 @@ static void updatePlayerState(
   /* Update orientation */
   player->orientation = commands.newOrientation;
 
+  Vec2 before = player->position;
+
   /* Update position */
   if (commands.actions.moveUp) {
     player->position.y += dt*player->speed;
@@ -233,7 +235,9 @@ static void tickGameState(Server *s, GloState *game) {
           !eqf(player->position.y, c->predicted.position.y, 0.0001f) ||
           !eqf(player->orientation, c->predicted.orientation, 0.0001f) ||
           !eqf(player->speed, c->predicted.speed, 0.0001f)) {
-        printf("Predicted ERROR!!!\n");
+        if (!c->flags.predictionError)
+          printf("Predicted ERROR %d!!!\n", c->commandCount);
+        c->flags.predictionError = 1;
       }
 
       c->commandCount = 0;
@@ -243,6 +247,7 @@ static void tickGameState(Server *s, GloState *game) {
 
 /* Server entry point */
 int main(int argc, char *argv[]) {
+  initializeGLFW();
   GloState *gameState = createGloState();
 
   signal(SIGINT, handleCtrlC);

@@ -21,6 +21,9 @@ typedef struct DrawContext {
   Mat4 invOrtho;
 } DrawContext;
 
+void initializeGLFW();
+/* Don't need to call initializeGLFW in client program because 
+   this function does it */
 DrawContext *createDrawContext();
 bool isContextClosed(DrawContext *ctx);
 void tickDisplay(DrawContext *ctx);

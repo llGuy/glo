@@ -337,7 +337,7 @@ static uint32_t deserializeConnect(Client *c, GloState *game, uint32_t *msgPtr) 
 }
 
 static uint32_t serializeSnapshot(
-  Server *s, Client *c, GloState *game, uint32_t *msgPtr) {
+  Server *s, GloState *game, uint32_t *msgPtr) {
   /* Place holder value to be filled in after function is called */
   serializeByte((unsigned char)0, msgBuffer, msgPtr);
 
@@ -388,10 +388,12 @@ static uint32_t deserializeSnapshot(
     }
     else {
       Player *player = &game->players[currentID];
-      player->position.x = deserializeFloat32(msgBuffer, msgPtr);
-      player->position.y = deserializeFloat32(msgBuffer, msgPtr);
-      player->orientation = deserializeFloat32(msgBuffer, msgPtr);
-      player->speed = deserializeFloat32(msgBuffer, msgPtr);
+      if (currentID != game->controlled) {
+        player->position.x = deserializeFloat32(msgBuffer, msgPtr);
+        player->position.y = deserializeFloat32(msgBuffer, msgPtr);
+        player->orientation = deserializeFloat32(msgBuffer, msgPtr);
+        player->speed = deserializeFloat32(msgBuffer, msgPtr);
+      }
     }
   }
 
@@ -483,9 +485,32 @@ void getServerAddress(Client *c) {
 }
 
 void tickClient(Client *c, GloState *game) {
-  /* Receive all the packets the server sent */
-
   if (c->flags.isConnected) {
+    /* Receive all the packets the server sent */
+    for (int i = 0; i < 5 /* May increase in future */; ++i) {
+      struct sockaddr_in addr = {};
+      int size = receivePacket(
+        c->mainSocket, (char *)msgBuffer, MSG_BUFFER_SIZE, &addr);
+
+      if (size > 0) {
+        PacketHeader header = {};
+        uint32_t msgPtr = deserializePacketHeader(&header);
+
+        switch (header.packetType) {
+        case PT_SNAPSHOT: {
+          printf("Received snapshot\n");
+          deserializeSnapshot(c, game, &msgPtr);
+
+          if (c->flags.predictionError) {
+            printf("Prediction error bitch\n");
+          }
+        } break;
+
+          /* Other stuff... */
+        }
+      }
+    }
+
     float currentTime = getTime();
     if (currentTime - c->lastCommandsSend > COMMANDS_PACKET_INTERVAL) {
       c->lastCommandsSend = currentTime;
@@ -574,22 +599,43 @@ Server createServer() {
   setSocketBlockingState(s.mainSocket, 0);
 
   s.clientOccupation = createBitvec(MAX_PLAYER_COUNT);
+  s.lastSnapshotSend = 0.0f;
 
   return s;
 }
 
-static void sendSnapshotToClient(GloState *game, Client *c) {
+static void sendSnapshotToClient(Server *s, Client *c, uint32_t size) {
+  uint32_t headerSize = sizeof(PacketHeader);
+  /* Just change the byte saying that prediction correction is needed */
+  serializeByte(
+    (unsigned char)c->flags.predictionError,
+    msgBuffer, &headerSize);
 
+  struct sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_port = c->clientPort;
+  addr.sin_addr.s_addr = c->clientAddr;
+
+  sendPacket(s->mainSocket, &addr, (char *)msgBuffer, size);
 }
 
 void tickServer(Server *server, GloState *game) {
   /* Send out the game state to all clients */
-  for (int i = 0; i < server->clientCount; ++i) {
-    Client *c = &server->clients[i];
+  float currentTime = getTime();
+  if (currentTime - server->lastSnapshotSend >= SNAPSHOT_PACKET_INTERVAL) {
+    printf("Sent snapshot to clients\n");
+    server->lastSnapshotSend = currentTime;
 
-    if (c->id != INVALID_CLIENT_ID) {
-      /* Send out game state */
-      sendSnapshotToClient(game, c);
+    uint32_t msgPtr = serializePacketHeader(&server->clients[0], PT_SNAPSHOT);
+    serializeSnapshot(server, game, &msgPtr);
+
+    for (int i = 0; i < server->clientCount; ++i) {
+      Client *c = &server->clients[i];
+
+      if (c->id != INVALID_CLIENT_ID) {
+        /* Send out game state */
+        sendSnapshotToClient(server, c, msgPtr);
+      }
     }
   }
 
@@ -615,6 +661,8 @@ void tickServer(Server *server, GloState *game) {
         c->clientAddr = addr.sin_addr.s_addr;
         c->clientPort = addr.sin_port;
         c->flags.isConnected = 1;
+
+        /* Initialize predicted data */
         Player *p = spawnPlayer(game, id);
         c->predicted.position = p->position;
         c->predicted.orientation = p->orientation;
