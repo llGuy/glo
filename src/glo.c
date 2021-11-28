@@ -63,12 +63,12 @@ Player *spawnPlayer(GloState *game, int idx) {
 }
 
 /* Needs to add to the trajectories array */
-int createBulletTrail(GloState *game, Vec2 start, Vec2 end) {
+int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart) {
   int trajectoryIdx = -1;
   BulletTrajectory *trajectory = NULL;
 
   if (game->freeBulletTrailCount) {
-    unsigned char freeBullet = game->freeBullets[--game->freeBulletTrailCount];
+    unsigned short freeBullet = game->freeBullets[--game->freeBulletTrailCount];
     trajectory = &game->bulletTrails[freeBullet];
     trajectoryIdx = (int)freeBullet;
   }
@@ -81,7 +81,15 @@ int createBulletTrail(GloState *game, Vec2 start, Vec2 end) {
 
   trajectory->wStart = start;
   trajectory->wEnd = end;
-  trajectory->timeStart = getTime();
+
+  if (timeStart == -1.0f) {
+    trajectory->timeStart = getTime();
+  }
+  else {
+    trajectory->timeStart = timeStart;
+  }
+
+  printf("%d\n", game->bulletTrailCount);
 
   return trajectoryIdx;
 }
@@ -133,7 +141,7 @@ static void updatePlayerState(
   }
   if (commands.actions.shoot)  {
     int bulletIdx = createBulletTrail(
-      gameState, player->position, commands.wShootTarget);
+      gameState, player->position, commands.wShootTarget, -1.0f);
   }
 
   player->position = keepInGridBounds(gameState, player->position);
@@ -278,17 +286,15 @@ static void tickGameState(Server *s, GloState *game) {
       /* Grind through those commands! */
       for (int command = 0; command < c->commandCount; ++command) {
         GameCommands commands = c->commandStack[command];
-        if (commands.actions.moveUp) {
-          copy.y += commands.dt*player->speed;
-        }
-        if (commands.actions.moveLeft) {
-          copy.x += -commands.dt*player->speed;
-        }
-        if (commands.actions.moveDown) {
-          copy.y += -commands.dt*player->speed;
-        }
-        if (commands.actions.moveRight) {
-          copy.x += commands.dt*player->speed;
+        if (commands.actions.moveUp) copy.y += commands.dt*player->speed;
+        if (commands.actions.moveLeft) copy.x += -commands.dt*player->speed;
+        if (commands.actions.moveDown) copy.y += -commands.dt*player->speed;
+        if (commands.actions.moveRight) copy.x += commands.dt*player->speed;
+
+        if (commands.actions.shoot) {
+          int bulletIdx = createBulletTrail(
+            game, player->position, commands.wShootTarget, -1.0f);
+          game->newTrails[game->newTrailsCount++] = bulletIdx;
         }
       }
 
@@ -301,10 +307,22 @@ static void tickGameState(Server *s, GloState *game) {
       else {
         c->flags.predictionError = 0;
         player->position = copy;
+        player->position = keepInGridBounds(game, player->position);
         player->orientation = c->predicted.orientation;
       }
 
       c->commandCount = 0;
+    }
+  }
+
+  /* Predict which bullets to desintegrate */
+  float currentTime = getTime();
+  for (int i = 0; i < game->bulletTrailCount; ++i) {
+    if (getBit(&game->bulletOccupation, i)) {
+      if (currentTime - game->bulletTrails[i].timeStart >=
+          MAX_LAZER_TIME+MAX_EXPLOSION_TIME) {
+        freeBulletTrail(game, i);
+      }
     }
   }
 }

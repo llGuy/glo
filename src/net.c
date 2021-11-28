@@ -371,6 +371,17 @@ static uint32_t serializeSnapshot(
 
   /* Serialize current trajectories as well */
   /* Client will have to calculate the starting time of the trajectories */
+  float currentTime = getTime();
+  serializeUint32(game->newTrailsCount, msgBuffer, msgPtr);
+  for (int i = 0; i < game->newTrailsCount; ++i) {
+    BulletTrajectory *trajectory = &game->bulletTrails[game->newTrails[i]];
+    serializeFloat32(trajectory->wStart.x, msgBuffer, msgPtr);
+    serializeFloat32(trajectory->wStart.y, msgBuffer, msgPtr);
+    serializeFloat32(trajectory->wEnd.x, msgBuffer, msgPtr);
+    serializeFloat32(trajectory->wEnd.y, msgBuffer, msgPtr);
+    /* We serialize the time difference */
+    serializeFloat32(currentTime - trajectory->timeStart, msgBuffer, msgPtr);
+  }
 
   /* Return the size of this packet */
   return *msgPtr;
@@ -451,6 +462,25 @@ static uint32_t deserializeSnapshot(
         }
       }
     }
+  }
+
+  float currentTime = getTime();
+  uint32_t newTrailsCount = deserializeUint32(msgBuffer, msgPtr);
+  for (int i = 0; i < newTrailsCount; ++i) {
+    Vec2 wStart, wEnd;
+    float timeStart;
+
+    wStart.x = deserializeFloat32(msgBuffer, msgPtr);
+    wStart.y = deserializeFloat32(msgBuffer, msgPtr);
+    wEnd.x = deserializeFloat32(msgBuffer, msgPtr);
+    wEnd.y = deserializeFloat32(msgBuffer, msgPtr);
+
+    /* We serialize the time difference */
+    float d = deserializeFloat32(msgBuffer, msgPtr);
+    // timeStart = currentTime - d;
+    timeStart = getTime();
+
+    createBulletTrail(game, wStart, wEnd, timeStart);
   }
 
   /* Return the size of this packet */
@@ -680,6 +710,8 @@ void tickServer(Server *server, GloState *game) {
 
     uint32_t msgPtr = serializePacketHeader(&server->clients[0], PT_SNAPSHOT);
     serializeSnapshot(server, game, &msgPtr);
+
+    game->newTrailsCount = 0;
 
     for (int i = 0; i < server->clientCount; ++i) {
       Client *c = &server->clients[i];

@@ -7,7 +7,7 @@
 #include "bitv.h"
 
 #define MAX_PLAYER_COUNT 20
-#define MAX_BULLET_TRAILS 100
+#define MAX_BULLET_TRAILS 1000
 #define MAX_PLAYER_ACTIVE_TRAJECTORIES 4
 #define BASE_SPEED 5.0f
 #define INVALID_TRAJECTORY (-1)
@@ -87,9 +87,13 @@ typedef struct GloState {
   /* Need to keep track of all the bullet trails and stuff */
   int freeBulletTrailCount;
   BitVector bulletOccupation;
-  unsigned char freeBullets[MAX_BULLET_TRAILS];
+  unsigned short freeBullets[MAX_BULLET_TRAILS];
   BulletTrajectory bulletTrails[MAX_BULLET_TRAILS];
   int bulletTrailCount;
+
+  /* For the server when sending state to the clients */
+  int newTrailsCount;
+  unsigned short newTrails[MAX_BULLET_TRAILS];
 
   float gridBoxSize;
   /* In grid boxes */
@@ -99,7 +103,7 @@ typedef struct GloState {
 GloState *createGloState();
 Player createPlayer(Vec2 position);
 Player *spawnPlayer(GloState *game, int idx);
-int createBulletTrail(GloState *game, Vec2 start, Vec2 end);
+int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart);
 void freeBulletTrail(GloState *game, int idx);
 
 #endif

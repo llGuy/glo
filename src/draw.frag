@@ -12,7 +12,7 @@ struct Trail {
 };
 
 #define MAX_PLAYERS 20
-#define MAX_TRAILS 100
+#define MAX_TRAILS 1000
 
 layout (std140) uniform SceneData {
   mat4 invOrtho;
