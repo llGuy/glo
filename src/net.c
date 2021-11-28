@@ -1,7 +1,6 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <error.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
