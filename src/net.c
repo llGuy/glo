@@ -287,6 +287,7 @@ static uint32_t serializeConnect(
       serializeFloat32(0.0f, msgBuffer, msgPtr);
       serializeFloat32(0.0f, msgBuffer, msgPtr);
       serializeFloat32(0.0f, msgBuffer, msgPtr);
+      serializeUint32(0.0f, msgBuffer, msgPtr);
     }
     else {
       Player *player = &game->players[currentClient->id];
@@ -294,6 +295,7 @@ static uint32_t serializeConnect(
       serializeFloat32(player->position.y, msgBuffer, msgPtr);
       serializeFloat32(player->orientation, msgBuffer, msgPtr);
       serializeFloat32(player->speed, msgBuffer, msgPtr);
+      serializeUint32(player->health, msgBuffer, msgPtr);
     }
   }
 
@@ -321,6 +323,7 @@ static uint32_t deserializeConnect(Client *c, GloState *game, uint32_t *msgPtr) 
       deserializeFloat32(msgBuffer, msgPtr);
       deserializeFloat32(msgBuffer, msgPtr);
       deserializeFloat32(msgBuffer, msgPtr);
+      deserializeUint32(msgBuffer, msgPtr);
     }
     else {
       Player *player = &game->players[currentID];
@@ -328,6 +331,7 @@ static uint32_t deserializeConnect(Client *c, GloState *game, uint32_t *msgPtr) 
       player->position.y = deserializeFloat32(msgBuffer, msgPtr);
       player->orientation = deserializeFloat32(msgBuffer, msgPtr);
       player->speed = deserializeFloat32(msgBuffer, msgPtr);
+      player->health = (int)deserializeUint32(msgBuffer, msgPtr);
       player->flags.isInitialized = 1;
     }
   }
@@ -359,6 +363,7 @@ static uint32_t serializeSnapshot(
       serializeFloat32(0.0f, msgBuffer, msgPtr);
       serializeFloat32(0.0f, msgBuffer, msgPtr);
       serializeFloat32(0.0f, msgBuffer, msgPtr);
+      serializeUint32(0, msgBuffer, msgPtr);
     }
     else {
       Player *player = &game->players[currentClient->id];
@@ -366,6 +371,7 @@ static uint32_t serializeSnapshot(
       serializeFloat32(player->position.y, msgBuffer, msgPtr);
       serializeFloat32(player->orientation, msgBuffer, msgPtr);
       serializeFloat32(player->speed, msgBuffer, msgPtr);
+      serializeUint32(player->health, msgBuffer, msgPtr);
     }
   }
 
@@ -381,6 +387,7 @@ static uint32_t serializeSnapshot(
     serializeFloat32(trajectory->wEnd.y, msgBuffer, msgPtr);
     /* We serialize the time difference */
     serializeFloat32(currentTime - trajectory->timeStart, msgBuffer, msgPtr);
+    serializeUint32(trajectory->shooter, msgBuffer, msgPtr);
   }
 
   /* Return the size of this packet */
@@ -421,6 +428,7 @@ static uint32_t deserializeSnapshot(
       deserializeFloat32(msgBuffer, msgPtr);
       deserializeFloat32(msgBuffer, msgPtr);
       deserializeFloat32(msgBuffer, msgPtr);
+      deserializeUint32(msgBuffer, msgPtr);
     }
     else {
       Player *player = &game->players[currentID];
@@ -444,20 +452,22 @@ static uint32_t deserializeSnapshot(
 
         /* We don't realy care about speed for remote players */
         player->speed = deserializeFloat32(msgBuffer, msgPtr);
+        player->health = (int)deserializeUint32(msgBuffer, msgPtr);
       }
       else if (c->flags.predictionError) {
         /* We need to force these new positions on controlled player */
-        printf("Made prediction error\n");
+        printf("Player moved incorrectly!\n");
         player->position.x = deserializeFloat32(msgBuffer, msgPtr);
         player->position.y = deserializeFloat32(msgBuffer, msgPtr);
         player->orientation = deserializeFloat32(msgBuffer, msgPtr);
         player->speed = deserializeFloat32(msgBuffer, msgPtr);
+        player->health = deserializeUint32(msgBuffer, msgPtr);
 
         /* Reset the command stack */
         c->commandCount = 0;
       }
       else {
-        for (int d = 0; d < 4; ++d) {
+        for (int d = 0; d < 5; ++d) {
           deserializeFloat32(msgBuffer, msgPtr);
         }
       }
@@ -480,7 +490,11 @@ static uint32_t deserializeSnapshot(
     // timeStart = currentTime - d;
     timeStart = getTime();
 
-    createBulletTrail(game, wStart, wEnd, timeStart);
+    int shooter = (int)deserializeUint32(msgBuffer, msgPtr);
+
+    if (shooter != game->controlled) {
+      createBulletTrail(game, wStart, wEnd, timeStart, shooter);
+    }
   }
 
   /* Return the size of this packet */
@@ -584,7 +598,6 @@ void tickClient(Client *c, GloState *game) {
 
         switch (header.packetType) {
         case PT_SNAPSHOT: {
-          printf("Received snapshot\n");
           deserializeSnapshot(c, game, &msgPtr);
         } break;
 
@@ -705,7 +718,6 @@ void tickServer(Server *server, GloState *game) {
   /* Send out the game state to all clients */
   float currentTime = getTime();
   if (currentTime - server->lastSnapshotSend >= SNAPSHOT_PACKET_INTERVAL) {
-    printf("Sent snapshot to clients\n");
     server->lastSnapshotSend = currentTime;
 
     uint32_t msgPtr = serializePacketHeader(&server->clients[0], PT_SNAPSHOT);
@@ -771,8 +783,6 @@ void tickServer(Server *server, GloState *game) {
 
         uint32_t size = deserializeCommands(
           &server->clients[clientID], &msgCounter);
-
-        printf("Received commands packet from %d\n", clientID);
       } break;
       }
     }

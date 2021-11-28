@@ -38,6 +38,8 @@ float lerp(float a, float b, float progress);
 Vec2 vec2_orient(float orientation);
 Vec2 vec2_add(Vec2 a, Vec2 b);
 Vec2 vec2_mul(Vec2 a, float scale);
+float vec2_dot(Vec2 a, Vec2 b);
+float vec2_dist2(Vec2 a, Vec2 b);
 Vec2 vec2(float x, float y);
 Vec4 vec4(float x, float y, float z, float w);
 

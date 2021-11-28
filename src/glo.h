@@ -12,9 +12,10 @@
 #define BASE_SPEED 5.0f
 #define INVALID_TRAJECTORY (-1)
 #define MAX_LAZER_TIME 0.2f
-#define RECOIL_TIME 0.1f
+#define RECOIL_TIME 0.5f
 #define MAX_EXPLOSION_TIME 0.15f
 #define MAX_PLAYER_SNAPSHOTS 10
+#define PLAYER_BASE_HEALTH 100
 
 /* A player will have a radius of 1.0f meter. The grid will be of 8x8 squares */
 typedef struct PlayerSnapshot {
@@ -41,6 +42,8 @@ typedef struct Player {
   uint32_t snapshotStart;
   uint32_t snapshotEnd;
   PlayerSnapshot snapshots[MAX_PLAYER_SNAPSHOTS];
+
+  int health;
 } Player;
 
 typedef struct BulletTrajectory {
@@ -49,7 +52,7 @@ typedef struct BulletTrajectory {
   Vec2 wEnd;
   float timeStart;
 
-  char pad[4];
+  int shooter;
 } BulletTrajectory;
 
 typedef struct GameCommands {
@@ -103,7 +106,8 @@ typedef struct GloState {
 GloState *createGloState();
 Player createPlayer(Vec2 position);
 Player *spawnPlayer(GloState *game, int idx);
-int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart);
+int createBulletTrail(
+  GloState *game, Vec2 start, Vec2 end, float timeStart, int shooter);
 void freeBulletTrail(GloState *game, int idx);
 
 #endif

@@ -28,7 +28,8 @@ Player createPlayer(Vec2 position) {
   Player player = {
     .position = position,
     .orientation = 0.0f,
-    .speed = BASE_SPEED
+    .speed = BASE_SPEED,
+    .health = PLAYER_BASE_HEALTH
   };
 
   for (int i = 0; i < MAX_PLAYER_ACTIVE_TRAJECTORIES; ++i) {
@@ -52,6 +53,7 @@ Player *spawnPlayer(GloState *game, int idx) {
   player->position.y = randomf(mapStart.y, mapEnd.y);
   player->orientation = randomf(0.0f, 6.3f);
   player->speed = BASE_SPEED;
+  player->health = PLAYER_BASE_HEALTH;
 
   for (int i = 0; i < MAX_PLAYER_ACTIVE_TRAJECTORIES; ++i) {
     player->activeTrajectories[i] = INVALID_TRAJECTORY;
@@ -63,7 +65,8 @@ Player *spawnPlayer(GloState *game, int idx) {
 }
 
 /* Needs to add to the trajectories array */
-int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart) {
+int createBulletTrail(
+  GloState *game, Vec2 start, Vec2 end, float timeStart, int shooter) {
   int trajectoryIdx = -1;
   BulletTrajectory *trajectory = NULL;
 
@@ -81,6 +84,7 @@ int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart) {
 
   trajectory->wStart = start;
   trajectory->wEnd = end;
+  trajectory->shooter = shooter;
 
   if (timeStart == -1.0f) {
     trajectory->timeStart = getTime();
@@ -88,8 +92,6 @@ int createBulletTrail(GloState *game, Vec2 start, Vec2 end, float timeStart) {
   else {
     trajectory->timeStart = timeStart;
   }
-
-  printf("%d\n", game->bulletTrailCount);
 
   return trajectoryIdx;
 }
@@ -141,7 +143,7 @@ static void updatePlayerState(
   }
   if (commands.actions.shoot)  {
     int bulletIdx = createBulletTrail(
-      gameState, player->position, commands.wShootTarget, -1.0f);
+      gameState, player->position, commands.wShootTarget, -1.0f, 0);
   }
 
   player->position = keepInGridBounds(gameState, player->position);
@@ -175,12 +177,6 @@ static void interpolateState(GloState *gameState, float dt) {
       int b = p->snapshotStart, e = p->snapshotEnd;
       uint32_t snapshotCount = (e-b+MAX_PLAYER_SNAPSHOTS) % MAX_PLAYER_SNAPSHOTS;
 
-      printf(
-        "\t\t\t%f Currently have %d snapshots for player %d\n",
-        p->progress,
-        snapshotCount,
-        i);
-
       if (snapshotCount >= 3) {
         /* We need to make sure that there are enough snapshots so as to
            avoid halting */
@@ -192,18 +188,14 @@ static void interpolateState(GloState *gameState, float dt) {
           p->progress = newProgress;
 
           b = (b+skipCount)%MAX_PLAYER_SNAPSHOTS;
-
-          printf("RESETTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n");
         }
 
         PlayerSnapshot *s0 = &p->snapshots[b];
         PlayerSnapshot *s1 = &p->snapshots[(b+1)%MAX_PLAYER_SNAPSHOTS];
 
-
         p->position.x = lerp(s0->position.x, s1->position.x, p->progress);
         p->position.y = lerp(s0->position.y, s1->position.y, p->progress);
         p->orientation = lerp(s0->orientation, s1->orientation, p->progress);
-        printf("%f -> %f = %f\n", s0->orientation, s1->orientation, p->orientation);
 
         p->snapshotStart = b;
         p->snapshotEnd = e;
@@ -273,6 +265,22 @@ static void handleCtrlC(int signum) {
   exit(signum);
 }
 
+static int checkBulletHit(BulletTrajectory *bullet, GloState *game) {
+  for (int i = 0; i < game->playerCount; ++i) {
+    Player *p = &game->players[i];
+    if (p->flags.isInitialized) {
+      Vec2 target = bullet->wEnd;
+      Vec2 pPos = p->position;
+
+      if (vec2_dist2(target, pPos) < 1.0f) {
+        return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
 /* The server is the program which authoritatively updates the game state */
 static void tickGameState(Server *s, GloState *game) {
   for (int i = 0; i < s->clientCount; ++i) {
@@ -293,8 +301,17 @@ static void tickGameState(Server *s, GloState *game) {
 
         if (commands.actions.shoot) {
           int bulletIdx = createBulletTrail(
-            game, player->position, commands.wShootTarget, -1.0f);
+            game, player->position, commands.wShootTarget, -1.0f, c->id);
           game->newTrails[game->newTrailsCount++] = bulletIdx;
+
+          int hitPlayer = checkBulletHit(&game->bulletTrails[bulletIdx], game);
+          if (hitPlayer != -1) {
+            Player *p = &game->players[hitPlayer];
+            p->health -= 25;
+            if (p->health <= 0) {
+              spawnPlayer(game, hitPlayer);
+            }
+          }
         }
       }
 

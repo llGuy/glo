@@ -44,6 +44,15 @@ Vec2 vec2_mul(Vec2 a, float scale) {
   return v;
 }
 
+float vec2_dot(Vec2 a, Vec2 b) {
+  return a.x*b.x + a.y*b.y;
+}
+
+float vec2_dist2(Vec2 a, Vec2 b) {
+  Vec2 d = vec2(a.x-b.x,a.y-b.y);
+  return vec2_dot(d, d);
+}
+
 Vec4 vec4(float x, float y, float z, float w) {
   Vec4 v = {
     .x = x, .y = y, .z = z, .w = w
