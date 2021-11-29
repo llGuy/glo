@@ -208,24 +208,17 @@ static void interpolateState(GloState *gameState, float dt) {
 /*****************************************************************************/
 /*                             Client entry point                            */
 /*****************************************************************************/
-static uint16_t getPort(int argc, char *argv[]) {
-  if (argc > 1) {
-    return atoi(argv[1]);
-  }
-  else {
-    return MAIN_SOCKET_PORT_CLIENT;
-  }
-}
-
 int main(int argc, char *argv[]) {
   DrawContext *drawContext = createDrawContext();
   RenderData *renderData = createRenderData(drawContext);
   GloState *gameState = createGloState();
 
   /* May add ability to change port */
-  uint16_t port = getPort(argc, argv);
+  uint16_t port = MAIN_SOCKET_PORT_CLIENT;
   Client client = createClient(port);
-  waitForGameState(&client, gameState);
+
+  const char *ip = (argc>1) ? argv[1]:"";
+  waitForGameState(&client, gameState, ip);
 
   bool isRunning = true;
 

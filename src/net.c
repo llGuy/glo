@@ -572,12 +572,20 @@ Client createClient(uint16_t mainPort) {
   return c;
 }
 
-void waitForGameState(Client *c, GloState *game) {
+void waitForGameState(Client *c, GloState *game, const char *ip) {
   /* Send a connection request to server */
   uint32_t msgSize = 0;
   PacketHeader header = {.packetType = PT_DISCOVER};
   serializeUint32(header.bytes, msgBuffer, &msgSize);
-  broadcastPacket(c, msgBuffer, msgSize);
+
+  if (strlen(ip) > 0) {
+    printf("Sending to ip address: %s\n", ip);
+    c->serverAddr = strToIpv4(ip, MAIN_SOCKET_PORT_SERVER, IPPROTO_UDP);
+    sendPacketToServer(c, msgBuffer, msgSize);
+  }
+  else {
+    broadcastPacket(c, msgBuffer, msgSize);
+  }
 
   for (int recvCount = 0; recvCount < 10; ++recvCount) {
     usleep(5);
