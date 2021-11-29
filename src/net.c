@@ -23,7 +23,11 @@ static uint8_t msgBuffer[MSG_BUFFER_SIZE];
 static void bindSocket(int sock, struct sockaddr_in *addr) {
   if (bind(sock, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
     fprintf(stderr, "Failed to bind socket to port - incrementing\n");
+
+    addr->sin_port = ntohs(addr->sin_port);
     addr->sin_port++;
+    addr->sin_port = htons(addr->sin_port);
+
     bindSocket(sock, addr);
   }
 }
@@ -526,7 +530,7 @@ static uint32_t deserializeSnapshot(
 static void broadcastPacket(Client *c, uint8_t *msg, uint32_t size) {
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = MAIN_SOCKET_PORT_SERVER;
+  addr.sin_port = htons(MAIN_SOCKET_PORT_SERVER);
   addr.sin_addr.s_addr = INADDR_BROADCAST;
   sendPacket(c->mainSocket, &addr, (char *)msg, size);
 }
@@ -534,7 +538,7 @@ static void broadcastPacket(Client *c, uint8_t *msg, uint32_t size) {
 static void sendPacketToServer(Client *c, uint8_t *msg, uint32_t size) {
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = MAIN_SOCKET_PORT_SERVER;
+  addr.sin_port = htons(MAIN_SOCKET_PORT_SERVER);
   addr.sin_addr.s_addr = c->serverAddr;
   sendPacket(c->mainSocket, &addr, (char *)msg, size);
 }
@@ -558,13 +562,13 @@ Client createClient(uint16_t mainPort) {
 
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = mainPort;
+  addr.sin_port = htons(mainPort);
   addr.sin_addr.s_addr = INADDR_ANY;
 
   /* Bind socket */
   bindSocket(c.mainSocket, &addr);
-  c.mainSocketPort = addr.sin_port;
-  printf("Bound to port %d\n", (int)addr.sin_port);
+  c.mainSocketPort = ntohs(addr.sin_port);
+  printf("Bound to port %d\n", (int)c.mainSocketPort);
 
   /* Disable blocking */
   setSocketBlockingState(c.mainSocket, 0);
@@ -587,7 +591,7 @@ void waitForGameState(Client *c, GloState *game, const char *ip) {
     broadcastPacket(c, msgBuffer, msgSize);
   }
 
-  for (int recvCount = 0; recvCount < 10; ++recvCount) {
+  for (int recvCount = 0; recvCount < 40; ++recvCount) {
     usleep(5);
 
     struct sockaddr_in addr = {};
@@ -727,7 +731,7 @@ Server createServer() {
 
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = MAIN_SOCKET_PORT_SERVER;
+  addr.sin_port = htons(MAIN_SOCKET_PORT_SERVER);
   addr.sin_addr.s_addr = INADDR_ANY;
 
   /* Bind socket */
@@ -751,7 +755,7 @@ static void sendSnapshotToClient(Server *s, Client *c, uint32_t size) {
 
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
-  addr.sin_port = c->clientPort;
+  addr.sin_port = htons(c->clientPort);
   addr.sin_addr.s_addr = c->clientAddr;
 
   sendPacket(s->mainSocket, &addr, (char *)msgBuffer, size);
@@ -801,7 +805,7 @@ void tickServer(Server *server, GloState *game) {
         Client *c = &server->clients[id];
         c->id = id;
         c->clientAddr = addr.sin_addr.s_addr;
-        c->clientPort = addr.sin_port;
+        c->clientPort = ntohs(addr.sin_port);
         c->flags.isConnected = 1;
 
         server->newClientStack[server->newClientCount++] = (unsigned char)id;
@@ -819,7 +823,9 @@ void tickServer(Server *server, GloState *game) {
         /* Send back to client that just sent this message */
         sendPacket(server->mainSocket, &addr, (char *)msgBuffer, size);
 
-        printf("Received discover packet - sent connection packet\n");
+        printf(
+          "Received discover packet (%d) - sent connection packet\n",
+          (int)c->clientPort);
       } break;
 
       case PT_COMMANDS: {
