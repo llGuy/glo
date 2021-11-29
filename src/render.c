@@ -156,7 +156,13 @@ void render(
       renderData->uniformData.wPlayerProp[i].x = p->position.x;
       renderData->uniformData.wPlayerProp[i].y = p->position.y;
       renderData->uniformData.wPlayerProp[i].z = p->orientation;
-      renderData->uniformData.wPlayerProp[i].w = 0.5f;
+
+      if (p->flags.isInitialized) {
+        renderData->uniformData.wPlayerProp[i].w = 0.5f;
+      }
+      else {
+        renderData->uniformData.wPlayerProp[i].w = 0.0f;
+      }
     }
 
     renderData->uniformData.time = getTime();

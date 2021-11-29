@@ -358,7 +358,15 @@ static uint32_t serializeSnapshot(
     /* May serialize other things like lazer colors, etc... */
   }
 
+  /* New disconnects */
+  serializeUint32(s->newDisconnects, msgBuffer, msgPtr);
+  for (int i = 0; i < s->newDisconnects; ++i) {
+    printf("Disconnected\n");
+    serializeUint32((uint32_t)s->newDisconnectStack[i], msgBuffer, msgPtr);
+  }
+
   /* Players[] */
+  serializeUint32(s->clientCount, msgBuffer, msgPtr);
   for (int i = 0; i < s->clientCount; ++i) {
     Client *currentClient = &s->clients[i];
 
@@ -423,7 +431,15 @@ static uint32_t deserializeSnapshot(
     }
   }
 
+  uint32_t disconnects = deserializeUint32(msgBuffer, msgPtr);
+  for (int i = 0; i < disconnects; ++i) {
+    int id = deserializeUint32(msgBuffer, msgPtr);
+    game->players[id].flags.isInitialized = 0;
+    printf("Player disconnected!\n");
+  }
+
   /* Players[] */
+  game->playerCount = deserializeUint32(msgBuffer, msgPtr);
   for (int i = 0; i < game->playerCount; ++i) {
     Player *currentPlayer = &game->players[i];
 
@@ -639,6 +655,14 @@ void tickClient(Client *c, GloState *game) {
   }
 }
 
+void disconnectFromServer(Client *c) {
+  uint32_t msgSize = 0;
+  PacketHeader header = {.packetType = PT_DISCONNECT, .clientID = c->id};
+  serializeUint32(header.bytes, msgBuffer, &msgSize);
+  /* And we're done! */
+  sendPacketToServer(c, msgBuffer, msgSize);
+}
+
 void destroyClient(Client *c) {
   
 }
@@ -745,6 +769,7 @@ void tickServer(Server *server, GloState *game) {
       }
     }
 
+    server->newDisconnects = 0;
     server->newClientCount = 0;
   }
 
@@ -794,6 +819,11 @@ void tickServer(Server *server, GloState *game) {
 
         uint32_t size = deserializeCommands(
           &server->clients[clientID], &msgCounter);
+      } break;
+
+      case PT_DISCONNECT: {
+        server->newDisconnectStack[server->newDisconnects++] = header.clientID;
+        freeClient(server, header.clientID);
       } break;
       }
     }

@@ -68,6 +68,9 @@ typedef struct Server {
   uint32_t newClientCount;
   unsigned char newClientStack[MAX_PLAYER_COUNT];
 
+  uint32_t newDisconnects;
+  unsigned char newDisconnectStack[MAX_PLAYER_COUNT];
+
   float lastSnapshotSend;
 } Server;
 
@@ -93,6 +96,7 @@ Client createClient(uint16_t mainPort);
 void waitForGameState(Client *c, GloState *game);
 void pushGameCommands(Client *c, const GameCommands *commands);
 void tickClient(Client *c, GloState *game);
+void disconnectFromServer(Client *c);
 void destroyClient(Client *);
 
 /*****************************************************************************/

@@ -227,14 +227,6 @@ int main(int argc, char *argv[]) {
   Client client = createClient(port);
   waitForGameState(&client, gameState);
 
-#if 0
-  /* Create test player */
-  gameState->controlled = 0;
-  spawnPlayer(gameState, 0);
-  spawnPlayer(gameState, 1);
-  gameState->playerCount = 2;
-#endif
-
   bool isRunning = true;
 
   while (isRunning) {
@@ -250,6 +242,9 @@ int main(int argc, char *argv[]) {
 
     isRunning = !isContextClosed(drawContext);
   }
+
+  /* Send disconnect packet to the server */
+  disconnectFromServer(&client);
 
   return 0;
 }
