@@ -19,9 +19,10 @@ static char *readTextFile(const char *path) {
   /* Get file size */
   fseek(file, 0L, SEEK_END);
   uint32_t fileSize = ftell(file);
-  char *data = malloc(sizeof(char) * (fileSize));
+  char *data = malloc(sizeof(char) * (fileSize + 1));
   rewind(file);
   fread(data, sizeof(char), fileSize, file);
+  data[fileSize] = 0;
   return data;
 }
 
