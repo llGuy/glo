@@ -47,6 +47,12 @@ static void setSocketBlockingState(int sock, int enabled) {
   fcntl(sock, F_SETFL, flags);
 }
 
+static void setSocketOptions(int sock) {
+  int broadcast = 1;
+  int errors = setsockopt(
+    sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int));
+}
+
 static int32_t receivePacket(
   int sock, char *buffer, uint32_t size, struct sockaddr_in *dst) {
   struct sockaddr_in fromAddress = {};
@@ -501,6 +507,14 @@ static uint32_t deserializeSnapshot(
   return *msgPtr;
 }
 
+static void broadcastPacket(Client *c, uint8_t *msg, uint32_t size) {
+  struct sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_port = MAIN_SOCKET_PORT_SERVER;
+  addr.sin_addr.s_addr = INADDR_BROADCAST;
+  sendPacket(c->mainSocket, &addr, (char *)msg, size);
+}
+
 static void sendPacketToServer(Client *c, uint8_t *msg, uint32_t size) {
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
@@ -524,6 +538,8 @@ Client createClient(uint16_t mainPort) {
     exit(-1);
   }
 
+  setSocketOptions(c.mainSocket);
+
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;
   addr.sin_port = mainPort;
@@ -537,8 +553,6 @@ Client createClient(uint16_t mainPort) {
   /* Disable blocking */
   setSocketBlockingState(c.mainSocket, 0);
 
-  getServerAddress(&c);
-
   return c;
 }
 
@@ -547,20 +561,18 @@ void waitForGameState(Client *c, GloState *game) {
   uint32_t msgSize = 0;
   PacketHeader header = {.packetType = PT_DISCOVER};
   serializeUint32(header.bytes, msgBuffer, &msgSize);
-  sendPacketToServer(c, msgBuffer, msgSize);
+  broadcastPacket(c, msgBuffer, msgSize);
 
   for (int recvCount = 0; recvCount < 10; ++recvCount) {
     usleep(5);
 
     struct sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_port = MAIN_SOCKET_PORT_SERVER;
-    addr.sin_addr.s_addr = c->serverAddr;
     int size = receivePacket(
       c->mainSocket, (char *)msgBuffer, MSG_BUFFER_SIZE, &addr);
 
     if (size > 0) {
       printf("Received game state: ready to play!\n");
+      c->serverAddr = addr.sin_addr.s_addr;
 
       c->flags.isConnected = 1;
 
@@ -569,6 +581,8 @@ void waitForGameState(Client *c, GloState *game) {
 
       assert(header.packetType == PT_CONNECT);
       deserializeConnect(c, game, &msgPtr);
+
+      break;
     }
   }
 }
@@ -577,11 +591,6 @@ void pushGameCommands(Client *c, const GameCommands *commands) {
   if (c->commandCount < MAX_COMMANDS) {
     c->commandStack[c->commandCount++] = *commands;
   }
-}
-
-void getServerAddress(Client *c) {
-  /* For testing purposes */
-  c->serverAddr = strToIpv4("127.0.0.1", MAIN_SOCKET_PORT_SERVER, IPPROTO_UDP);
 }
 
 void tickClient(Client *c, GloState *game) {
@@ -681,6 +690,8 @@ Server createServer() {
     fprintf(stderr, "Failed to create server socket: %d\n", errno);
     exit(-1);
   }
+
+  setSocketOptions(s.mainSocket);
 
   struct sockaddr_in addr = {};
   addr.sin_family = AF_INET;

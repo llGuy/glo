@@ -92,7 +92,6 @@ typedef union PacketHeader {
 Client createClient(uint16_t mainPort);
 void waitForGameState(Client *c, GloState *game);
 void pushGameCommands(Client *c, const GameCommands *commands);
-void getServerAddress(Client *c);
 void tickClient(Client *c, GloState *game);
 void destroyClient(Client *);
 

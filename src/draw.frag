@@ -168,7 +168,7 @@ vec3 lightScene(in vec2 wCoord, float hiddenPlayers) {
   litColor += 0.2*vec3(1.5, 1.3, 0.5) / (d*d);
 
 #if 1
-  if (dot(litColor,litColor) > 0.01 && inPlayer) {
+  if (dot(litColor,litColor) > 0.0005 && inPlayer) {
     litColor += vec3(litColor) * 5.0;
   }
 #else
